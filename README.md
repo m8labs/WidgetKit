@@ -1,5 +1,10 @@
 
-# WidgetKit
+# WidgetKit for iOS &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Create%20native%20iOS%20apps%20in%20Xcode%20without%20a%20code!&url=https://github.com/faviomob/WidgetKit&hashtags=WidgetKit_iOS,Xcode,iOS)
+
+[![Platform](https://img.shields.io/badge/platform-iOS-aaaaaa.svg?style=flat)](#Installation)
+[![Twitter](https://img.shields.io/badge/twitter-@faviomob-1da1f2.svg?style=flat)](http://twitter.com/faviomob)
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](#Carthage)
+
 
 _WidgetKit_ framework allows you to compose native apps without a code and load them as `NSBundle` into another app dynamicly from local or remote locations. No executables will be downloaded and loaded into memory, because widgets contain none of them. All logic and data flow are based on `NSPredicate` and `NSExpression`.
 

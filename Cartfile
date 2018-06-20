@@ -1,0 +1,4 @@
+github "Alamofire/Alamofire"
+github "Alamofire/AlamofireImage"
+github "gonzalezreal/Groot"
+github "weichsel/ZIPFoundation"

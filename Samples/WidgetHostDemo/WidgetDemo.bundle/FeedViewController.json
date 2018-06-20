@@ -1,0 +1,119 @@
+{
+    "FeedViewController": {
+        "objects": {
+            "currentUserProvider": {
+                "type": "ManagedObjectsProvider",
+                "attrs": {
+                    "entityName": "Account",
+                    "resultChain": [
+                        "wx_first"
+                    ]
+                }
+            },
+            "homeFeedContentProvider": {
+                "type": "ManagedObjectsProvider",
+                "attrs": {
+                    "entityName": "Post",
+                    "predicateFormat": "favoritesCount > 0",
+                    "sortByFields": "timestamp",
+                    "sortAscending": false
+                }
+            },
+            "currentUserDisplayController": {
+                "type": "ContentDisplayController",
+                "outlets": {
+                    "mainContentProvider": "currentUserProvider"
+                }
+            },
+            "tableDisplayController": {
+                "type": "TableDisplayController",
+                "outlets": {
+                    "mainContentProvider": "homeFeedContentProvider",
+                    "searchController": "searchController",
+                    "emptyDataView": "emptyDataView",
+                    "tableView": "tableView"
+                }
+            },
+            "currentUserAction": {
+                "type": "OnLoadActionController",
+                "attrs": {
+                    "actionName": "currentUser"
+                }
+            },
+            "homeFeedStatusController": {
+                "alias": "homeFeedStatus",
+                "type": "ActionStatusController",
+                "attrs": {
+                    "actionName": "homeFeed",
+                    "errorMessage": "Failed to load feed!"
+                }
+            },
+            "searchController": {
+                "type": "SearchActionController",
+                "attrs": {
+                    "actionName": "searchPosts",
+                    "filterFormat": "text CONTAINS[cd] $input"
+                },
+                "outlets": {
+                    "sender": "searchBar"
+                }
+            }
+        },
+        "elements": {
+            "@self": {
+                "attrs": {
+                    "serviceProviderClassName": "StubServiceProvider"
+                }
+            },
+            "titleLabel": {
+                "bindings": [
+                    {
+                        "predicateFormat": "content == nil",
+                        "ifTrue": "",
+                        "ifFalse": "$content.name"
+                    }
+                ]
+            },
+            "footerActivityIndicator": {
+                "bindings": [
+                    {
+                        "predicateFormat": "currentUserAction.status.inProgress == 1 OR homeFeedStatus.inProgress == 1"
+                    }
+                ]
+            },
+            "avatarView": {
+                "bindings": [
+                    {
+                        "to": "wx_imageName",
+                        "from": "content.author.imageName"
+                    }
+                ]
+            },
+            "textLabel": {
+                "bindings": [
+                    {
+                        "placeholder": "<Empty post>",
+                        "from": "content.text"
+                    }
+                ]
+            },
+            "authorLabel": {
+                "bindings": [
+                    {
+                        "placeholder": "<Author>",
+                        "from": "content.author.name"
+                    }
+                ]
+            },
+            "timeLabel": {
+                "bindings": [
+                    {
+                        "placeholder": "--s",
+                        "from": "content.timestamp",
+                        "transformer": "ago"
+                    }
+                ]
+            }
+        }
+    }
+}

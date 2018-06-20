@@ -1,0 +1,9 @@
+platform :ios, '10.0'
+
+use_frameworks!
+
+target 'WidgetHostDemo' do
+
+  pod 'WidgetKit', :path => '../../WidgetKit.podspec'
+
+end

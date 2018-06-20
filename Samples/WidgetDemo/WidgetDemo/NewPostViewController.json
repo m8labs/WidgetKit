@@ -1,0 +1,71 @@
+{
+    "NewPostViewController": {
+        "objects": {
+            "newPostActionController": {
+                "type": "BarButtonActionController",
+                "attrs": {
+                    "actionName": "newPost"
+                },
+                "outlets": {
+                    "form": "formView",
+                    "sender": "postButton"
+                }
+            },
+            "newPostStatusController": {
+                "type": "ActionStatusController",
+                "alias": "postStatus",
+                "attrs": {
+                    "actionName": "newPost",
+                    "errorMessage": "Post can`t be posted so far."
+                },
+                "outlets": {
+                    "elements": [
+                        "postButton",
+                        "textView"
+                    ]
+                }
+            }
+        },
+        "elements": {
+            "@self": {
+                "attrs": {
+                    "serviceProviderClassName": "StubServiceProvider"
+                },
+                "bindings": [
+                    {
+                        "to": "wx_dismissed",
+                        "from": "postStatus.isSuccess"
+                    }
+                ]
+            },
+            "postButton": {
+                "bindings": [
+                    {
+                        "to": "wx_disabled",
+                        "from": "postStatus.inProgress"
+                    }
+                ]
+            },
+            "textView": {
+                "bindings": [
+                    {
+                        "to": "wx_readOnly",
+                        "from": "postStatus.inProgress"
+                    },
+                    {
+                        "predicateFormat": "postStatus.isSuccess = 1",
+                        "ifTrue": "",
+                        "ifFalse": "$textView.text"
+                    }
+                ]
+            },
+            "formView": {
+                "outlets": {
+                    "mandatoryFields": [
+                        "textView"
+                    ]
+                }
+            }
+        }
+    }
+}

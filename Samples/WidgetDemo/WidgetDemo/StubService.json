@@ -1,0 +1,134 @@
+{
+    "defaults": {
+        "baseUrl": "https://test",
+        "httpMethod": "GET",
+        "headers": {},
+        "resultKeyPath": "",
+        "parameters": {}
+    },
+    "actions": {
+        "currentUser": {
+            "resultType": "Account",
+            "nextAction": "homeFeed",
+            "response": {
+                "followers_count": 1000000,
+                "id_str": "0",
+                "name": "Favio Mobile",
+                "screen_name": "faviomob",
+                "image_name": "widgets"
+            }
+        },
+        "homeFeed": {
+            "resultType": "[Post]",
+            "clearPolicy": "after",
+            "parameters": {
+                "count": "20"
+            },
+            "response": [
+                {
+                    "id_str": "1",
+                    "favorite_count": 9000,
+                    "repost_count": 9999,
+                    "text": "WidgetKit Framework provides a set of 100% reusable objects! #reusable #objects",
+                    "created_at": "Wed Jun 20 18:00:00 +0000 2018",
+                    "user": {
+                        "id_str": "0"
+                    }
+                },
+                {
+                    "id_str": "2",
+                    "favorite_count": 4,
+                    "repost_count": 4,
+                    "text": "Bind UIKit elements to model's fields with data formatting. #bindings",
+                    "created_at": "Wed Jun 20 17:00:00 +0000 2018",
+                    "user": {
+                        "id_str": "1",
+                        "name": "Infinite Red",
+                        "screen_name": "username1",
+                        "image_name": "ava_infinity"
+                    }
+                },
+                {
+                    "id_str": "3",
+                    "favorite_count": 5,
+                    "repost_count": 5,
+                    "text": "Handle UIControl's interactions, including infinite scroll and pull to refresh. #infinite_scroll #pull_to_refresh",
+                    "created_at": "Wed Jun 20 16:00:00 +0000 2018",
+                    "user": {
+                        "id_str": "2",
+                        "name": "Green Dragon",
+                        "screen_name": "username2",
+                        "image_name": "ava_dragon"
+                    }
+                },
+                {
+                    "id_str": "4",
+                    "favorite_count": 6,
+                    "repost_count": 6,
+                    "text": "Handle received JSON data and parse it directly to the CoreData in the background. #CoreData #background",
+                    "created_at": "Wed Jun 20 15:00:00 +0000 2018",
+                    "user": {
+                        "id_str": "3",
+                        "name": "Black & White",
+                        "screen_name": "username3",
+                        "image_name": "ava_dots"
+                    }
+                },
+                {
+                    "id_str": "5",
+                    "favorite_count": 7,
+                    "repost_count": 7,
+                    "text": "Populate UITableView and UICollectionView with various types of data. #CoreData #JSON",
+                    "created_at": "Wed Jun 20 14:00:00 +0000 2018",
+                    "user": {
+                        "id_str": "4",
+                        "name": "Deep Pixels",
+                        "screen_name": "username4",
+                        "image_name": "ava_pixels"
+                    }
+                },
+                {
+                    "id_str": "6",
+                    "favorite_count": 3,
+                    "repost_count": 3,
+                    "text": "Calculate views geometry in the background for faster scrolling. #geometry #background",
+                    "created_at": "Wed Jun 20 12:00:00 +0000 2018",
+                    "user": {
+                        "id_str": "5",
+                        "name": "Pirple 8",
+                        "screen_name": "username5",
+                        "image_name": "ava_pirple8"
+                    }
+                }
+            ]
+        },
+        "newPost": {
+            "httpMethod": "POST",
+            "resultType": "Post",
+            "parameters": {
+                "status": "$text"
+            },
+            "response": {
+                "id_str": "7",
+                "favorite_count": 7,
+                "repost_count": 7,
+                "text": "$text",
+                "created_at": "Wed Jun 20 19:00:00 +0000 2018",
+                "user": {
+                    "id_str": "0"
+                }
+            }
+        }
+    },
+    "options": {
+        "transformers": {
+            "date": {
+                "strToDate": {
+                    "format": "EEE MMM d HH:mm:ss Z y",
+                    "locale": "en_US_POSIX"
+                }
+            }
+        },
+        "debugDelay": 0.25
+    }
+}

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="14133" systemVersion="17E202" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Account" representedClassName="WidgetDemo.Account" parentEntity="User" syncable="YES" codeGenerationType="class">
+        <userInfo>
+            <entry key="isOwnerEntity" value="1"/>
+        </userInfo>
+    </entity>
+    <entity name="Post" representedClassName="WidgetDemo.Post" syncable="YES" codeGenerationType="class">
+        <attribute name="favoritesCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="favorite_count"/>
+            </userInfo>
+        </attribute>
+        <attribute name="postId" optional="YES" attributeType="String" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="id_str"/>
+            </userInfo>
+        </attribute>
+        <attribute name="repostCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="repost_count"/>
+            </userInfo>
+        </attribute>
+        <attribute name="text" optional="YES" attributeType="String" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="text"/>
+            </userInfo>
+        </attribute>
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="created_at"/>
+                <entry key="JSONTransformerName" value="strToDate"/>
+            </userInfo>
+        </attribute>
+        <relationship name="author" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="User" inverseName="posts" inverseEntity="User" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="user"/>
+            </userInfo>
+        </relationship>
+        <userInfo>
+            <entry key="identityAttribute" value="postId"/>
+            <entry key="ownerRelationship" value="author"/>
+        </userInfo>
+    </entity>
+    <entity name="User" representedClassName="WidgetDemo.User" syncable="YES" codeGenerationType="class">
+        <attribute name="imageName" optional="YES" attributeType="String" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="image_name"/>
+            </userInfo>
+        </attribute>
+        <attribute name="name" optional="YES" attributeType="String" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="name"/>
+            </userInfo>
+        </attribute>
+        <attribute name="nickname" optional="YES" attributeType="String" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="screen_name"/>
+            </userInfo>
+        </attribute>
+        <attribute name="userId" optional="YES" attributeType="String" syncable="YES">
+            <userInfo>
+                <entry key="JSONKeyPath" value="id_str"/>
+            </userInfo>
+        </attribute>
+        <relationship name="posts" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Post" inverseName="author" inverseEntity="Post" syncable="YES"/>
+        <userInfo>
+            <entry key="identityAttribute" value="userId"/>
+        </userInfo>
+    </entity>
+    <elements>
+        <element name="Account" positionX="-9999" positionY="-3348" width="128" height="43"/>
+        <element name="Post" positionX="-9603" positionY="-3402" width="128" height="133"/>
+        <element name="User" positionX="-9801" positionY="-3402" width="128" height="118"/>
+    </elements>
+</model>

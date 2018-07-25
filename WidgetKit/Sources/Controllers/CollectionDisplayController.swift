@@ -102,6 +102,11 @@ open class CollectionDisplayController: BaseDisplayController {
         }
         super.setup()
     }
+    
+    open override func prepare() {
+        super.prepare()
+        vars = ObjectsDictionaryProxy(copy: viewController.vars)
+    }
 }
 
 extension CollectionDisplayController {

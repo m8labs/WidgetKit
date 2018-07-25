@@ -255,6 +255,14 @@ open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
     open func fetch() {
         //
     }
+    
+    open override func setup() {
+        super.setup()
+        // Taking vc's content object as the `masterObject` for all content providers, if `masterKeyPath` was set.
+        if masterKeyPath != nil {
+            masterObject = viewController.content as? NSObject
+        }
+    }
 }
 
 public class ItemsCollection: BaseContentProvider {

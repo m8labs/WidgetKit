@@ -45,12 +45,19 @@ public extension NSPersistentContainer {
                                          identifier: String = "Default",
                                          type: String = NSSQLiteStoreType) -> NSPersistentContainer {
         let container = NSPersistentContainer(name: identifier, managedObjectModel: model)
-        let description = NSPersistentStoreDescription()
+        let defaultURL = NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("\(identifier).sqlite")
+        let description = NSPersistentStoreDescription(url: defaultURL)
         description.type = type
         description.shouldAddStoreAsynchronously = false
+        description.shouldInferMappingModelAutomatically = true
+        description.shouldMigrateStoreAutomatically = true
         container.persistentStoreDescriptions = [description]
         container.loadPersistentStores(completionHandler: { desc, error in
-            print("Loaded store '\(identifier)': \(desc)")
+            if error != nil {
+                print("Load store error'\(identifier)': \(error!)")
+            } else {
+                print("Loaded store '\(identifier)': \(desc)")
+            }
         })
         container.viewContext.automaticallyMergesChangesFromParent = true
         return container

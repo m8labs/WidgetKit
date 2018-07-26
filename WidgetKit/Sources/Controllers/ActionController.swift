@@ -84,7 +84,10 @@ open class ActionController: CustomIBObject {
     }
     
     func performServiceAction(with object: Any? = nil) {
-        guard let actionName = resolvedActionName else { return }
+        guard let actionName = resolvedActionName else {
+            print("You should provide `actionName` for the \(ActionController.self)")
+            return
+        }
         let object = object ?? content
         if let service = resolvedServiceProvider {
             status = ActionStatusController(owner: self, actionName: actionName)

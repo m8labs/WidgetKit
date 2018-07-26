@@ -183,6 +183,10 @@ public class BarButtonActionController: ActionController {
 
 public class TableRefreshActionController: ActionController {
     
+    public override var content: Any? {
+        return viewController?.content
+    }
+    
     var tableView: UITableView? {
         return sender as? UITableView
     }

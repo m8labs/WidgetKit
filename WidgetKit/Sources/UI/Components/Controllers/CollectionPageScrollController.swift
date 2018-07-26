@@ -41,10 +41,16 @@ open class CollectionPageScrollController: CollectionDisplayController {
 
 extension CollectionPageScrollController {
     
-    public func nextPage() {
+    public func nextPage(animated: Bool = true) {
         let contentOffset = collectionView!.contentOffset
         let nextPage = CGFloat(currentPage + 1)
-        collectionView.setContentOffset(CGPoint(x: CGFloat(nextPage * itemSize.width), y: contentOffset.y), animated: true)
+        collectionView.setContentOffset(CGPoint(x: CGFloat(nextPage * itemSize.width), y: contentOffset.y), animated: animated)
+    }
+    
+    public func scrollToPage(_ page: Int, animated: Bool = false) {
+        let contentOffset = collectionView!.contentOffset
+        let nextPage = CGFloat(page)
+        collectionView.setContentOffset(CGPoint(x: CGFloat(nextPage * itemSize.width), y: contentOffset.y), animated: animated)
     }
 }
 

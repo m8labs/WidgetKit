@@ -46,7 +46,7 @@ open class CollectionDisplayController: BaseDisplayController {
     
     @objc public var cellHeightHint: CGFloat = -1
     
-    @IBOutlet var collectionView: UICollectionView! {
+    @IBOutlet public var collectionView: UICollectionView! {
         get { return elements?.first as! UICollectionView }
         set { elements = [newValue] }
     }
@@ -252,7 +252,7 @@ open class ContentCollectionViewCell: UICollectionViewCell, ContentDisplayProtoc
         }
     }
     
-    @IBOutlet var contentDisplayView: ContentDisplayView?
+    @IBOutlet public var contentDisplayView: ContentDisplayView?
     
     public var content: Any? {
         didSet {

@@ -56,7 +56,7 @@ open class TableDisplayController: BaseDisplayController {
     
     public var cellDeselected: ((ContentTableViewCell, Any, IndexPath) -> Void)?
     
-    @IBOutlet var tableView: UITableView! {
+    @IBOutlet public var tableView: UITableView! {
         get { return elements?.first as! UITableView }
         set { elements = [newValue] }
     }
@@ -394,7 +394,7 @@ open class ContentTableViewCell: UITableViewCell, ContentDisplayProtocol {
         }
     }
     
-    @IBOutlet var contentDisplayView: ContentDisplayView?
+    @IBOutlet public var contentDisplayView: ContentDisplayView?
     
     public var content: Any? {
         didSet {

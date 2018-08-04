@@ -82,6 +82,10 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
             }
         }
         setupObservers()
+    }
+    
+    open override func prepare() {
+        super.prepare()
         if let mainContentProvider = mainContentProvider {
             mainContentProvider.fetch()
         }

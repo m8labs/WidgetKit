@@ -51,6 +51,15 @@ class ContentProviderTests: XCTestCase {
         XCTAssertEqual("item4, item5", result)
     }
     
+    func testResultChainWithEmptyArray() {
+        let content = BaseContentProvider()
+        content.items = []
+        content.resultChain = ["wx_takeFirst:"]
+        content.resultChainArgs = ["1"]
+        let result = content.value as? String
+        XCTAssertNil(result)
+    }
+    
     func testMasterObject() {
         let collection = ItemsCollection()
         collection.masterKeyPath = "items"

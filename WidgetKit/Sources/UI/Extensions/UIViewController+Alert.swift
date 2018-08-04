@@ -25,15 +25,18 @@ import UIKit
 
 extension UIViewController {
     
-    public func showAlert(title: String? = nil, message: String?) {
+    public func showAlert(title: String? = nil, message: String?, action: (title: String, cancelTitle: String, handler: (() -> Void)?)? = nil) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let cancelAction = UIAlertAction(title: NSLocalizedString("OK", comment: ""), style: .cancel, handler: nil)
-        alert.addAction(cancelAction)
+        if let action = action {
+            let cancelAction = UIAlertAction(title: action.cancelTitle, style: .cancel, handler: nil)
+            alert.addAction(cancelAction)
+            let alertAction = UIAlertAction(title: action.title, style: .default, handler: {_ in action.handler?() })
+            alert.addAction(alertAction)
+        } else {
+            let cancelAction = UIAlertAction(title: NSLocalizedString("OK", comment: ""), style: .cancel, handler: nil)
+            alert.addAction(cancelAction)
+        }
         present(alert, animated: true)
-    }
-    
-    public static func showGlobalAlert(title: String? = nil, message: String?) {
-        UIApplication.shared.keyWindow?.rootViewController?.showAlert(title: title, message: message)
     }
     
     public func showActionSheet(title: String? = nil, message: String?, options: [(title: String, handler: (() -> Void)?)]) {
@@ -47,4 +50,8 @@ extension UIViewController {
         }
         present(sheet, animated: true)
     }
+}
+
+public func showAlert(title: String? = nil, message: String?, action: (title: String, cancelTitle: String, handler: (() -> Void)?)? = nil) {
+    UIApplication.shared.keyWindow?.rootViewController?.showAlert(title: title, message: message, action: action)
 }

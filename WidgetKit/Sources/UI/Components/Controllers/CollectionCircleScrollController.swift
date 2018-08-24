@@ -43,13 +43,13 @@ extension CollectionCircleScrollController {
 
 extension CollectionCircleScrollController {
     
-    public override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    open override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let count = contentProvider.itemsCountInSection(section)
         pageControl?.numberOfPages = section == 0 ? count : 0
         return count * (section == 0 ? circleScrollFactor : 1)
     }
     
-    public override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    open override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let indexPath = indexPath.section == 0 && circleScrollFactor > 1 ? IndexPath(item: indexPath.item % contentProvider.itemsCountInSection(0), section: 0) : indexPath
         let object = contentProvider.item(at: indexPath)!
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: dynamicCellIdentifier?(object, indexPath) ?? (cellIdentifier ?? CollectionDisplayController.defaultCellIdentifier), for: indexPath)

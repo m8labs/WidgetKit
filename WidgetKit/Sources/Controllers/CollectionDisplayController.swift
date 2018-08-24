@@ -122,17 +122,17 @@ extension CollectionDisplayController {
 
 extension CollectionDisplayController: UICollectionViewDataSource {
     
-    public func numberOfSections(in collectionView: UICollectionView) -> Int {
+    open func numberOfSections(in collectionView: UICollectionView) -> Int {
         emptyDataView?.isHidden = !contentProvider.isEmpty
         return contentProvider.sectionsCount
     }
     
-    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    open func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let count = contentProvider.itemsCountInSection(section)
         return count
     }
     
-    public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    open func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let object = contentProvider.item(at: indexPath) else { preconditionFailure("Cell object should not be nil.") }
         let cellId = cellIdentifier(for: object, at: indexPath)
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath)
@@ -146,7 +146,7 @@ extension CollectionDisplayController: UICollectionViewDataSource {
 
 extension CollectionDisplayController: UICollectionViewDelegate {
     
-    public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    open func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell {
             if performSegueForCells > 0 {
                 viewController.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
@@ -171,7 +171,7 @@ extension CollectionDisplayController: UICollectionViewDelegate {
         }
     }
     
-    public func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+    open func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
         if let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell, let item = contentProvider.item(at: indexPath) {
             if let object = item as? NSObject {
                 selectedObjectsIDs.remove(object.objectId)
@@ -180,7 +180,7 @@ extension CollectionDisplayController: UICollectionViewDelegate {
         }
     }
     
-    public func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    open func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         if let object = contentProvider.item(at: indexPath) as? NSObject  {
             let isSelected = selectedObjectsIDs.contains(object.objectId)
             cell.isSelected = isSelected
@@ -216,7 +216,7 @@ extension CollectionDisplayController: UICollectionViewDelegateFlowLayout {
         return cachedItemSize!
     }
     
-    public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+    open func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return itemSize
     }
 }

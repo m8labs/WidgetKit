@@ -56,7 +56,7 @@ extension CollectionPageScrollController {
 
 extension CollectionPageScrollController {
     
-    public override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    open override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let count = contentProvider.itemsCountInSection(section)
         pageControl?.numberOfPages = section == 0 ? count : 0
         return count

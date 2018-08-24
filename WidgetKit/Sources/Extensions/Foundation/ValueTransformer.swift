@@ -38,15 +38,21 @@ extension ValueTransformer {
         formatter.timeZone = timeZone
         formatter.locale = locale
         ValueTransformer.grt_setValueTransformer(withName: name, transform: { value -> Any? in
-            if let date = value as? Date {
+            if let date = value as? Date { // from CoreData to UI
                 let string = formatter.string(from: date)
                 return string
-            } else if let string = value as? String {
+            } else if let string = value as? String { // from JSON to CoreData
                 let date = formatter.date(from: string)
                 return date
             }
             return nil
-        })
+        }) { value -> Any? in // from CoreData to JSON
+            if let date = value as? Date {
+                let string = formatter.string(from: date)
+                return string
+            }
+            return nil
+        }
     }
     
     static func setDefaultTransformers() {

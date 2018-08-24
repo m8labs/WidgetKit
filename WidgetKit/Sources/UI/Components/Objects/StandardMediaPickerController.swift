@@ -90,6 +90,15 @@ public class MediaUploadFormView: FormDisplayView {
         }
     }
     
+    public func reset() {
+        if uploadContainer.pickerResult != nil {
+            actionController.cancelAction()
+        }
+        progress = 0
+        uploadContainer.pickerResult = nil
+        actionController.viewController.configure()
+    }
+    
     public func shouldBeginUpload(with info: MediaPickerResultInfo) {
         progress = 0
         unveilAlpha = 1
@@ -100,11 +109,8 @@ public class MediaUploadFormView: FormDisplayView {
     }
     
     @IBAction func detachAction(_ sender: Any?) {
-        actionController.cancelAction()
-        progress = 0
+        reset()
         unveilAlpha = 0
-        uploadContainer.pickerResult = nil
-        actionController.viewController.configure()
     }
 }
 
@@ -269,7 +275,13 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     }
     
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String: Any]) {
-        if let form = forms?.filter({ $0.uploadContainer.pickerResult == nil }).first {
+        guard let forms = self.forms else { return print("Empty `forms` array.") }
+        if forms.count == 1 { // single form - just reupload
+            let form = forms.first!
+            form.reset()
+            form.shouldBeginUpload(with: MediaPickerResultInfo(info: info))
+            picker.dismiss(animated: true)
+        } else if let form = forms.filter({ $0.uploadContainer.pickerResult == nil }).first { // multiple forms - fulfill first empty
             form.shouldBeginUpload(with: MediaPickerResultInfo(info: info))
             picker.dismiss(animated: true)
         }

@@ -50,10 +50,7 @@ public class ObjectsDictionaryProxy: NSObject {
     private var dict = [String: Any]()
     
     public override func value(forKey key: String) -> Any? {
-        guard let object = dict[key] else {
-            print("Warning: object with key = '\(key)' was not found in \(ObjectsDictionaryProxy.self)")
-            return nil
-        }
+        let object = dict[key]
         return object
     }
     

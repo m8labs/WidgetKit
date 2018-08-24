@@ -53,7 +53,7 @@ public class ContentWrapper: ContentAwareProtocol {
     
     public var content: Any?
     
-    public init(content: NSObject?) {
+    public init(content: Any?) {
         self.content = content
     }
 }
@@ -64,7 +64,7 @@ extension StandardViewController {
         performSegue(withIdentifier: "Next", sender: sender)
     }
     
-    func performNext(with object: NSObject) {
+    func performNext(with object: Any?) {
         performSegue(withIdentifier: "Next", sender: ContentWrapper(content: object))
     }
     

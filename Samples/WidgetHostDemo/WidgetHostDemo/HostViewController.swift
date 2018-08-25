@@ -3,7 +3,7 @@
 //  WidgetDemo
 //
 //  Created by Marat on 24/05/2018.
-//  Copyright © 2018 Favio Mobile. All rights reserved.
+//  Copyright © 2018 M8 Labs. All rights reserved.
 //
 
 import WidgetKit

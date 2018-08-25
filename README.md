@@ -416,7 +416,7 @@ P.S. Don't forget to check the [TwitterDemo](https://github.com/faviomob/WidgetK
 
 ## License
 
-MIT, Copyright (c) 2018 [Favio Mobile](http://favio.mobi)
+MIT, Copyright (c) 2018 [M8 Labs](http://m8labs.com)
 
 ## Contacts
 

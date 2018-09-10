@@ -213,7 +213,7 @@ open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
     }
     
     open func item(at indexPath: IndexPath) -> Any? {
-        guard indexPath.section == 0 else { return nil }
+        guard indexPath.section == 0, indexPath.item < items.count else { return nil }
         return items[indexPath.item]
     }
     

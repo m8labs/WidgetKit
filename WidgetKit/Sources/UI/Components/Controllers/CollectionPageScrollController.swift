@@ -25,7 +25,7 @@ import UIKit
 
 open class CollectionPageScrollController: CollectionDisplayController {
     
-    private var currentPage: Int = 0
+    public private(set) var currentPage: Int = 0
     
     @IBOutlet var pageControl: UIPageControl?
     
@@ -40,6 +40,10 @@ open class CollectionPageScrollController: CollectionDisplayController {
 }
 
 extension CollectionPageScrollController {
+    
+    public var numberOfPages: Int {
+        return contentProvider.itemsCountInSection(0)
+    }
     
     public func nextPage(animated: Bool = true) {
         let contentOffset = collectionView!.contentOffset
@@ -57,9 +61,8 @@ extension CollectionPageScrollController {
 extension CollectionPageScrollController {
     
     open override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        let count = contentProvider.itemsCountInSection(section)
-        pageControl?.numberOfPages = section == 0 ? count : 0
-        return count
+        pageControl?.numberOfPages = numberOfPages
+        return contentProvider.itemsCountInSection(section)
     }
 }
 

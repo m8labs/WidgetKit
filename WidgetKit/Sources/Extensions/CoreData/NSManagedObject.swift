@@ -101,11 +101,9 @@ extension NSManagedObject {
     }
     
     public var isMine: Bool {
-        if let owner = owner {
-            if let isOwnerEntity = owner.entity.userInfo?["isOwnerEntity"] as? String {
-                return NSString(string: isOwnerEntity).boolValue
-            }
+        if let owner = owner, let isOwnerEntity = owner.entity.userInfo?["isOwnerEntity"] as? String {
+            return NSString(string: isOwnerEntity).boolValue
         }
-        return false
+        return true
     }
 }

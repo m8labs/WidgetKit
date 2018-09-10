@@ -294,9 +294,9 @@ extension TableDisplayController: UITableViewDelegate {
     // Cell Sizing
     
     open func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        guard !systemAutomaticDimensionEnabled else { return UITableViewAutomaticDimension }
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return UITableViewAutomaticDimension }
         guard object != objectToDelete else { return 0 }
+        guard !systemAutomaticDimensionEnabled else { return UITableViewAutomaticDimension }
         return heightForObject(object, at: indexPath)
     }
     

@@ -71,11 +71,12 @@ open class CollectionDisplayController: BaseDisplayController {
     open func cellIdentifier(for object: Any, at indexPath: IndexPath) -> String {
         vars.setValue(object, forKey: ObjectsDictionaryProxy.contentKey)
         var cellId = ""
-        let key = (searchController?.isSearching ?? false) ? type(of: self).searchCellIdentifierKey : type(of: self).cellIdentifierKey
+        let isSearching = searchController?.isSearching ?? false
+        let key = isSearching ? type(of: self).searchCellIdentifierKey : type(of: self).cellIdentifierKey
         if let eval = wx.evals[key] ?? wx.evals[type(of: self).cellIdentifierKey] {
             cellId = eval.perform(with: vars) as! String
         } else {
-            cellId = dynamicCellIdentifier?(object, indexPath) ?? (cellIdentifier ?? type(of: self).defaultCellIdentifier)
+            cellId = dynamicCellIdentifier?(object, indexPath) ?? ((isSearching ? searchCellIdentifier : cellIdentifier) ?? type(of: self).defaultCellIdentifier)
         }
         return cellId
     }

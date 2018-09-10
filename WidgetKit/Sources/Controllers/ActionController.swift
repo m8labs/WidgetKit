@@ -85,7 +85,7 @@ open class ActionController: CustomIBObject {
     
     func performServiceAction(with object: Any? = nil) {
         guard let actionName = resolvedActionName else {
-            print("You should provide `actionName` for the \(ActionController.self)")
+            print("Action for the \(self) was resolved to nil.")
             return
         }
         let object = object ?? content

@@ -39,7 +39,7 @@ public class SearchActionController: ActionController {
         }
     }
     
-    public var searchText: String! {
+    public var searchText: String {
         get {
             return (textInput?.text ?? searchBar?.text) ?? ""
         }
@@ -51,13 +51,13 @@ public class SearchActionController: ActionController {
     }
     
     open override var content: Any? {
-        return [TextInputView.inputFieldName: searchText ?? ""]
+        return [TextInputView.inputFieldName: searchText]
     }
     
     @objc public var filterFormat: String?
     
     public var isSearching: Bool {
-        return actionName != nil && (searchText?.count ?? 0) > 0
+        return searchText.count > 0
     }
     
     @objc public var dynamicSearch = false
@@ -84,7 +84,7 @@ public class SearchActionController: ActionController {
     }
     
     var canSearch: Bool {
-        return (searchText?.count ?? 0) >= minimumTextLength
+        return searchText.count >= minimumTextLength
     }
     
     @objc func _filter() {

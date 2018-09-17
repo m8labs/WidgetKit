@@ -25,18 +25,28 @@ import UIKit
 
 extension UIViewController {
     
-    public func showAlert(title: String? = nil, message: String?, action: (title: String, cancelTitle: String, handler: (() -> Void)?)? = nil) {
+    public func showAlert(title: String? = nil, message: String?, actions: [(title: String, handler: (() -> Void)?)]) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        if let action = action {
-            let cancelAction = UIAlertAction(title: action.cancelTitle, style: .cancel, handler: nil)
-            alert.addAction(cancelAction)
-            let alertAction = UIAlertAction(title: action.title, style: .default, handler: {_ in action.handler?() })
-            alert.addAction(alertAction)
-        } else {
+        actions.forEach { option in
+            if let handler = option.handler {
+                alert.addAction(UIAlertAction(title: option.title, style: .default, handler: { _ in handler() }))
+            } else {
+                alert.addAction(UIAlertAction(title: option.title, style: .cancel, handler: nil))
+            }
+        }
+        if alert.actions.count == 0 {
             let cancelAction = UIAlertAction(title: NSLocalizedString("OK", comment: ""), style: .cancel, handler: nil)
             alert.addAction(cancelAction)
         }
         present(alert, animated: true)
+    }
+    
+    public func showAlert(title: String? = nil, message: String?, action: (title: String, cancelTitle: String, handler: (() -> Void)?)? = nil) {
+        if let action = action {
+            showAlert(title: title, message: message, actions: [(action.title, action.handler), (action.cancelTitle, nil)])
+        } else {
+            showAlert(title: title, message: message, actions: [])
+        }
     }
     
     public func showActionSheet(title: String? = nil, message: String?, options: [(title: String, handler: (() -> Void)?)]) {
@@ -52,6 +62,14 @@ extension UIViewController {
     }
 }
 
+public func showAlert(title: String? = nil, message: String?, actions: [(title: String, handler: (() -> Void)?)]) {
+    UIApplication.shared.keyWindow?.rootViewController?.showAlert(title: title, message: message, actions: actions)
+}
+
 public func showAlert(title: String? = nil, message: String?, action: (title: String, cancelTitle: String, handler: (() -> Void)?)? = nil) {
-    UIApplication.shared.keyWindow?.rootViewController?.showAlert(title: title, message: message, action: action)
+    if let action = action {
+        showAlert(title: title, message: message, actions: [(action.title, action.handler), (action.cancelTitle, nil)])
+    } else {
+        showAlert(title: title, message: message, actions: [])
+    }
 }

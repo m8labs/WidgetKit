@@ -240,11 +240,19 @@ public class ObjectAssistant: NSObject {
     func addEval(_ name: String, dictionary: [String: Any]) -> NSObject? {
         let eval = Evaluation()
         eval.predicateFormat = dictionary[BindingOption.predicateFormat.rawValue] as? String
-        eval.valueIfTrue = dictionary[BindingOption.valueIfTrue.rawValue]
-        eval.valueIfFalse = dictionary[BindingOption.valueIfFalse.rawValue]
-        eval.valueFormat = dictionary[BindingOption.valueFormat.rawValue] as? String
-        eval.placeholder = dictionary[BindingOption.nullPlaceholder.rawValue] as? String
         eval.transformerName = dictionary[BindingOption.valueTransformerName.rawValue] as? String
+        if let v = dictionary[BindingOption.valueIfTrue.rawValue] {
+            eval.valueIfTrue = v is String ? NSLocalizedString(v as! String, comment: "") : v
+        }
+        if let v = dictionary[BindingOption.valueIfFalse.rawValue] {
+            eval.valueIfFalse = v is String ? NSLocalizedString(v as! String, comment: "") : v
+        }
+        if let v = dictionary[BindingOption.valueFormat.rawValue] as? String {
+            eval.valueFormat = NSLocalizedString(v, comment: "")
+        }
+        if let v = dictionary[BindingOption.nullPlaceholder.rawValue] as? String {
+            eval.placeholder = NSLocalizedString(v, comment: "")
+        }
         evals[name] = eval
         return eval
     }
@@ -260,11 +268,19 @@ public class ObjectAssistant: NSObject {
         binding.targetKeyPath = targetKeyPath
         binding.sourceKeyPath = dictionary[ObjectAssistant.bindFrom] as? String
         binding.predicateFormat = dictionary[BindingOption.predicateFormat.rawValue] as? String
-        binding.valueIfTrue = dictionary[BindingOption.valueIfTrue.rawValue]
-        binding.valueIfFalse = dictionary[BindingOption.valueIfFalse.rawValue]
-        binding.valueFormat = dictionary[BindingOption.valueFormat.rawValue] as? String
-        binding.placeholder = dictionary[BindingOption.nullPlaceholder.rawValue] as? String
         binding.transformerName = dictionary[BindingOption.valueTransformerName.rawValue] as? String
+        if let v = dictionary[BindingOption.valueIfTrue.rawValue] {
+            binding.valueIfTrue = v is String ? NSLocalizedString(v as! String, comment: "") : v
+        }
+        if let v = dictionary[BindingOption.valueIfFalse.rawValue] {
+            binding.valueIfFalse = v is String ? NSLocalizedString(v as! String, comment: "") : v
+        }
+        if let v = dictionary[BindingOption.valueFormat.rawValue] as? String {
+            binding.valueFormat = NSLocalizedString(v, comment: "")
+        }
+        if let v = dictionary[BindingOption.nullPlaceholder.rawValue] as? String {
+            binding.placeholder = NSLocalizedString(v, comment: "")
+        }
         bindings[binding.targetKeyPath] = binding
         return binding
     }

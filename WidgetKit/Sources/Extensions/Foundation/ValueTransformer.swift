@@ -84,8 +84,8 @@ extension ValueTransformer {
             if c == "-" || c == "0" {
                 return NSLocalizedString("Now", comment: "")
             } else {
-                let comps = s.components(separatedBy: CharacterSet(charactersIn: " ,"))
-                return comps.count > 0 ? comps[0] : s // https://openradar.appspot.com/26354907
+                let comps = s.components(separatedBy: CharacterSet(charactersIn: ","))
+                return (comps.count > 0 ? comps[0] : s).trimmingCharacters(in: CharacterSet(charactersIn: " ")) // https://openradar.appspot.com/26354907
             }
         }
         ValueTransformer.setValueTransformer(withName: "ago", transform: ago)

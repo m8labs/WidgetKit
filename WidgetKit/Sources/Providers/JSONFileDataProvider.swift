@@ -25,22 +25,58 @@ import Foundation
 
 public class JSONFileDataProvider: BaseContentProvider {
     
-    public private(set) var fileName: String
+    @objc public private(set) var fileName: String?
     
-    public init(fileName: String) {
-        self.fileName = fileName
-        super.init()
-        fetch()
+    @objc public private(set) var fileUrl: String?
+    
+    @objc public var downloadDelay: TimeInterval = 1
+    
+    func loadFromData(_ data: Data, completion: @escaping (Error?) -> ()) {
+        asyncGlobal { [unowned self] in
+            do {
+                let object = try JSONSerialization.jsonObject(with: data)
+                asyncMain {
+                    if let arr = object as? [NSDictionary] {
+                        self.items = arr.map { return NSMutableDictionary(dictionary: $0) }
+                    } else if let dict = object as? NSDictionary {
+                        self.items = [NSMutableDictionary(dictionary: dict)]
+                    }
+                    completion(nil)
+                }
+            } catch {
+                print("Error parsing \(error).")
+                asyncMain {
+                    completion(error)
+                }
+            }
+        }
+    }
+    
+    func download() {
+        guard let fileUrl = fileUrl else { return }
+        guard let url = URL(string: fileUrl) else { return print("Invalid URL for \(self).") }
+        print("Downloading \(url)")
+        asyncGlobal { [weak self] in
+            guard let this = self else { return }
+            do {
+                let data = try Data(contentsOf: url)
+                this.loadFromData(data) { _ in
+                    this.contentConsumer?.renderContent(from: this)
+                }
+            } catch {
+                print("Error downloading \(this): \(error)")
+            }
+        }
     }
     
     public override func fetch() {
-        guard let path = bundle.path(forResource: fileName, ofType: "json") else { return }
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return }
-        guard let object = try? JSONSerialization.jsonObject(with: data as Data) else { return }
-        if let arr = object as? [NSDictionary] {
-            items = arr.map { return NSMutableDictionary(dictionary: $0) }
-        } else if let dict = object as? NSDictionary {
-            items = [NSMutableDictionary(dictionary: dict)]
+        guard let fileName = fileName, let path = bundle.path(forResource: fileName, ofType: "json") else { return print("JSON not found for \(self).") }
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return print("Error loading \(self).") }
+        loadFromData(data) { [unowned self] _ in
+            self.contentConsumer?.renderContent(from: self)
+            after(self.downloadDelay) {
+                self.download()
+            }
         }
     }
 }

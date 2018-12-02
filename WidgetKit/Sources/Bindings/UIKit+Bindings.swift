@@ -122,6 +122,11 @@ extension UITextField {
         set { text = "\(newValue ?? "")" }
     }
     
+    open override var wx_fieldValue: Any? {
+        get { return (text ?? "").count > 0 ? text : nil }
+        set { wx_value = newValue }
+    }
+    
     open override var wx_disabled: Bool {
         get { return !isEnabled }
         set { isEnabled = !newValue }

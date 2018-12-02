@@ -42,9 +42,11 @@ open class FormDisplayView: ContentDisplayView, ContentFormProtocol {
     }
     
     private func scanForm() -> [String: Any]? {
-        let mandatoryFields = self.mandatoryFields.filter { $0.wx_fieldName != nil && $0.wx_fieldValue != nil }
+        let mandatoryFields = self.mandatoryFields.filter {
+            $0.wx_fieldName != nil && $0.wx_fieldValue != nil
+        }
         guard mandatoryFields.count == self.mandatoryFields.count else {
-            for view in self.mandatoryFields {
+            for view in Set(self.mandatoryFields).subtracting(mandatoryFields) {
                 async { self.highlightField(view, error: nil) }
             }
             return nil

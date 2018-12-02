@@ -238,6 +238,15 @@ extension UIViewController {
             }
         }
     }
+    
+    public var wx_poppedBack: Bool {
+        get { return false }
+        set {
+            if newValue {
+                navigationController?.popViewController(animated: true)
+            }
+        }
+    }
 }
 
 @objc

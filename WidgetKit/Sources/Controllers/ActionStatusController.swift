@@ -37,6 +37,9 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     @objc public var errorTitle: String?
     @objc public var errorMessage: String?
     
+    @objc public var needAuthSegue: String?
+    @objc public var needAuthErrorCodes = [401]
+    
     public var observers: [Any] = []
     
     public func setupObservers() {
@@ -70,7 +73,11 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                     this.isFailure = true
                     this.viewController?.refresh(elements: this.elements)
                     if let error = n.errorFromUserInfo {
-                        this.viewController?.handleError(error, sender: this)
+                        if this.needAuthErrorCodes.contains((error as NSError).code), let segue = this.needAuthSegue {
+                            this.viewController?.performSegue(withIdentifier: segue, sender: this)
+                        } else {
+                            this.viewController?.handleError(error, sender: this)
+                        }
                     }
                 }
             }

@@ -90,6 +90,10 @@ open class StandardServiceProvider: ServiceProvider {
     public var printFullRequest = true
     public var printFullResponse = true
     
+    public var errorDomain: String {
+        return "\(bundle.bundleIdentifier!).Error"
+    }
+    
     func requestIdentifier(for action: String, from sender: NSObject?) -> String {
         return "\(widget?.identifier ?? bundle.bundleIdentifier!)_\(action)_\(sender?.wx.identifier ?? "0")"
     }
@@ -104,7 +108,7 @@ open class StandardServiceProvider: ServiceProvider {
     open func serverError(for action: String, code: Int, data: Data?) -> Error? {
         guard code != 200, let json = data?.jsonObject() as? [String: Any] else { return nil }
         let errorKeyPath = configuration.errorKeyPath(for: action)
-        return NSError(domain: "\(bundle.bundleIdentifier!).Error", code: code, userInfo: (json[errorKeyPath] as? [String: Any]) ?? json)
+        return NSError(domain: errorDomain, code: code, userInfo: (json[errorKeyPath] as? [String: Any]) ?? json)
     }
     
     func request(for action: String, with object: Any? = nil, from sender: Any? = nil, completion: @escaping Completion) {
@@ -119,21 +123,26 @@ open class StandardServiceProvider: ServiceProvider {
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
         requests[requestID] = SessionManager.default.request(request)
             .validate { request, response, data in
+                self.requests[requestID] = nil
                 self.afterAction(action, request: request, response: response, data: data)
-                if let error = self.serverError(for: action, code: response.statusCode, data: data) {
+                if response.statusCode < 400 {
+                    return .success
+                } else if let error = self.serverError(for: action, code: response.statusCode, data: data) {
                     return .failure(error)
+                } else if let data = data, let errorText = String(data: data, encoding: .utf8) {
+                    return .failure(NSError(domain: self.errorDomain, code: response.statusCode, userInfo: [NSLocalizedDescriptionKey: errorText]))
+                } else {
+                    return .failure(NSError(domain: self.errorDomain, code: response.statusCode))
                 }
-                return .success
             }
             .responseJSON { response in
-                self.requests[requestID] = nil
                 switch response.result {
                 case .success:
                     completion(response.result.value, nil)
                 case let .failure(error):
                     completion(nil, error)
                 }
-        }
+            }
     }
     
     private func handleResponse(_ notification: Notification.Name, sender: Any?, result: Any?, error: Error?, completion: Completion?) {
@@ -310,10 +319,10 @@ open class StandardServiceProvider: ServiceProvider {
     }
     
     func printResponse(_ response: URLResponse?, data: Data?, for action: String) {
-        if let data = data {
-            print("\nResponse '\(action)': \(printFullResponse ? (data.jsonString() ?? "<invalid JSON>") : String(data.count) + " bytes")")
+        if let data = data, data.count > 0 {
+            print("\nResponse '\(action)': \(printFullResponse ? (data.jsonString() ?? String(data: data, encoding: .utf8) ?? "<binary data>") : String(data.count) + " bytes")")
         } else {
-            print("\n<empty or invalid response data>")
+            print("\n<No response data>")
         }
         print("-----------------------------------------------------------------------------------\n")
     }

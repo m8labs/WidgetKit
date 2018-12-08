@@ -31,7 +31,7 @@ extension JSONSerialization {
             let json = try JSONSerialization.jsonObject(with: data as Data)
             return json as? NSDictionary
         } catch {
-            print(error)
+            print("JSON parsing error: \(error)")
         }
         return nil
     }
@@ -47,7 +47,7 @@ extension JSONSerialization {
             let json = try JSONSerialization.jsonObject(with: data, options: .allowFragments)
             return json
         } catch {
-            print(error)
+            print("JSON parsing error: \(error)")
         }
         return nil
     }
@@ -57,7 +57,7 @@ extension JSONSerialization {
             let data = try JSONSerialization.data(withJSONObject: object, options: options)
             return String(data: data, encoding: .utf8)
         } catch {
-            print(error)
+            print("JSON serializing error: \(error)")
         }
         return nil
     }
@@ -70,7 +70,7 @@ extension Data {
             let json = try JSONSerialization.jsonObject(with: self, options: .allowFragments)
             return json
         } catch {
-            print(error)
+            print("JSON parsing error: \(error)")
         }
         return nil
     }
@@ -80,7 +80,7 @@ extension Data {
             let json = try JSONSerialization.jsonObject(with: self, options: .allowFragments)
             return JSONSerialization.jsonObjectToString(json)
         } catch {
-            print(error)
+            print("JSON parsing error: \(error)")
         }
         return nil
     }

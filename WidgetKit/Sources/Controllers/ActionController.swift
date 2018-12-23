@@ -94,9 +94,9 @@ open class ActionController: CustomIBObject {
         (viewController as? SchemeDiagnosticsProtocol)?.beforeAction?(actionName, content: object, sender: self)
         let selector = targetSelector
         if service.responds(to: selector) {
-            service.perform(selector, with: object, with: sender)
+            service.perform(selector, with: object, with: self)
         } else {
-            service.performAction(actionName, with: object, from: sender, completion: nil)
+            service.performAction(actionName, with: object, from: self, completion: nil)
         }
     }
     

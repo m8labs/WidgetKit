@@ -48,24 +48,26 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
             return
         }
         observers = [
-            action.notification.onStart.subscribe(to: owner?.sender) { [weak self] _ in
+            action.notification.onStart.subscribe(to: owner) { [weak self] _ in
                 if let this = self {
                     this.inProgress = true
                     this.isSuccess = false
                     this.isFailure = false
                     this.viewController?.refresh(elements: this.elements)
+                    this.owner?.statusChanged(this, result: nil, error: nil)
                 }
             },
-            action.notification.onReady.subscribe(to: owner?.sender) { [weak self] n in
+            action.notification.onReady.subscribe(to: owner) { [weak self] n in
                 if let this = self {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: nil, sender: this)
                     this.inProgress = false
                     this.isSuccess = true
                     this.isFailure = false
                     this.viewController?.refresh(elements: this.elements)
+                    this.owner?.statusChanged(this, result: n.objectFromUserInfo, error: nil)
                 }
             },
-            action.notification.onError.subscribe(to: owner?.sender) { [weak self] n in
+            action.notification.onError.subscribe(to: owner) { [weak self] n in
                 if let this = self {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: n.errorFromUserInfo, sender: this)
                     this.inProgress = false

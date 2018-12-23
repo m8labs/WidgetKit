@@ -47,8 +47,15 @@ open class CollectionDisplayController: BaseDisplayController {
     @objc public var cellHeightHint: CGFloat = -1
     
     @IBOutlet public var collectionView: UICollectionView! {
-        get { return elements?.first as! UICollectionView }
-        set { elements = [newValue] }
+        get {
+            guard let view = elements?.first as? UICollectionView else {
+                preconditionFailure("\(CollectionDisplayController.self) should be connected to UICollectionView.")
+            }
+            return view
+        }
+        set {
+            elements = [newValue]
+        }
     }
     
     @IBOutlet public var emptyDataView: UIView?

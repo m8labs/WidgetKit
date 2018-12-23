@@ -57,8 +57,15 @@ open class TableDisplayController: BaseDisplayController {
     public var cellDeselected: ((ContentTableViewCell, Any, IndexPath) -> Void)?
     
     @IBOutlet public var tableView: UITableView! {
-        get { return elements?.first as! UITableView }
-        set { elements = [newValue] }
+        get {
+            guard let view = elements?.first as? UITableView else {
+                preconditionFailure("\(TableDisplayController.self) should be connected to UITableView.")
+            }
+            return view
+        }
+        set {
+            elements = [newValue]
+        }
     }
     
     @IBOutlet var emptyDataView: UIView?
@@ -205,6 +212,20 @@ extension TableDisplayController: UITableViewDelegate {
     
     // Object selection handling
     
+    private func handleSelectionOf(_ object: NSObject, at indexPath: IndexPath) {
+        if selectedObjectsIDs.contains(object.objectId) {
+            selectedObjectsIDs.remove(object.objectId)
+            tableView.deselectRow(at: indexPath, animated: false)
+        } else {
+            if !tableView.allowsMultipleSelection {
+                selectedObjectsIDs.removeAllObjects()
+            }
+            if !selectedObjectsIDs.contains(object.objectId) {
+                selectedObjectsIDs.add(object.objectId)
+            }
+        }
+    }
+    
     open func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard let cell = tableView.cellForRow(at: indexPath) as? ContentTableViewCell else { return }
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
@@ -215,17 +236,7 @@ extension TableDisplayController: UITableViewDelegate {
             viewController.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
         } else {
             if collectSelectedObjects {
-                if selectedObjectsIDs.contains(object.objectId) {
-                    selectedObjectsIDs.remove(object.objectId)
-                    tableView.deselectRow(at: indexPath, animated: false)
-                } else {
-                    if !tableView.allowsMultipleSelection {
-                        selectedObjectsIDs.removeAllObjects()
-                    }
-                    if !selectedObjectsIDs.contains(object.objectId) {
-                        selectedObjectsIDs.add(object.objectId)
-                    }
-                }
+                handleSelectionOf(object, at: indexPath)
             }
             if defaultSelectionBehavior {
                 cell.accessoryType = .checkmark

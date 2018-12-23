@@ -47,7 +47,7 @@ public protocol ServiceConfigurationProtocol {
     
     func headers(for action: String) -> HTTPHeaders
     
-    func parameters(for action: String) -> Parameters
+    func parameters(for action: String) -> Parameters?
     
     func multipartParams(for action: String) -> Parameters?
     
@@ -159,10 +159,10 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
         return HTTPMethod(rawValue: httpMethod as? String ?? "GET") ?? .get
     }
     
-    public func parameters(for action: String) -> Parameters {
+    public func parameters(for action: String) -> Parameters? {
         var params = configDict?.value(forKeyPath: "actions.\(action).parameters") as? Parameters ?? [:]
         params.merge(defaultParameters) { (current, _) in current }
-        return params
+        return params.count > 0 ? params : nil
     }
     
     public func multipartParams(for action: String) -> Parameters? {
@@ -246,7 +246,7 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
             url = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "<url>"
             var parameters = self.parameters(for: action)
             if let object = object as? NSObject {
-                parameters = parameters.substitute(object)
+                parameters = parameters?.substitute(object)
             }
             if let composer = requestComposer {
                 request = composer(action, httpMethod(for: action), url, parameters, headers(for: action))

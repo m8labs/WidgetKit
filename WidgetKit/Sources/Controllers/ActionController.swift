@@ -153,6 +153,40 @@ extension ActionController: ActionStatusControllerDelegate {
     }
 }
 
+public class CellDetailActionController: ActionController {
+    
+    @objc var segue: String!
+    @objc var keyPath: String?
+    
+    var masterObject: NSObject!
+    
+    public override var content: Any? {
+        return masterObject
+    }
+    
+    func performSegue(_ segue: String, with object: Any) {
+        viewController.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
+    }
+    
+    public override func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool {
+        if status.isSuccess, let segue = segue, let object = result {
+            performSegue(segue, with: object)
+        }
+        return true
+    }
+    
+    public override func performAction() {
+        guard let masterObject = masterObject, let keyPath = keyPath, let segue = segue else {
+            return print("\(self) should have `masterObject`, `segue` and `keyPath`.")
+        }
+        if let object = masterObject.value(forKeyPath: keyPath) {
+            performSegue(segue, with: object)
+        } else if actionName != nil {
+            super.performAction()
+        }
+    }
+}
+
 public class ButtonActionController: ActionController {
     
     var button: UIButton? {

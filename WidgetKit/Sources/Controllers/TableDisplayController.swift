@@ -208,6 +208,9 @@ extension TableDisplayController: UITableViewDelegate {
     open func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard let cell = tableView.cellForRow(at: indexPath) as? ContentTableViewCell else { return }
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
+        if cell.detailSegue != nil {
+            cell.performDetailSegueWith(object)
+        }
         if performSegueForCells > 0 {
             viewController.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
         } else {
@@ -378,6 +381,22 @@ extension TableDisplayController {
 // MARK: -
 
 open class ContentTableViewCell: UITableViewCell, ContentDisplayProtocol {
+    
+    @objc var detailSegue: String?
+    @objc var detailKeyPath: String?
+    @objc var detailActionName: String?
+    
+    @objc lazy var detailActionController = CellDetailActionController()
+    
+    fileprivate func performDetailSegueWith(_ object: NSObject) {
+        guard let detailSegue = detailSegue, let detailKeyPath = detailKeyPath, let vc = viewController() as? ContentViewController else { return }
+        detailActionController.viewController = vc
+        detailActionController.segue = detailSegue
+        detailActionController.keyPath = detailKeyPath
+        detailActionController.masterObject = object
+        detailActionController.actionName = detailActionName
+        detailActionController.performAction()
+    }
     
     public fileprivate(set) var scheme: NSDictionary? {
         didSet {

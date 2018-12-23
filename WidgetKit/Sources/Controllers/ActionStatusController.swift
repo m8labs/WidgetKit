@@ -23,6 +23,11 @@
 
 import UIKit
 
+protocol ActionStatusControllerDelegate {
+    
+    func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool
+}
+
 open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     
     @IBOutlet public var elements: [NSObject]?
@@ -75,10 +80,12 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                     this.isFailure = true
                     this.viewController?.refresh(elements: this.elements)
                     if let error = n.errorFromUserInfo {
-                        if this.needAuthErrorCodes.contains((error as NSError).code), let segue = this.needAuthSegue {
-                            this.viewController?.performSegue(withIdentifier: segue, sender: this)
-                        } else {
-                            this.viewController?.handleError(error, sender: this)
+                        if this.owner?.statusChanged(this, result: nil, error: error) ?? true {
+                            if this.needAuthErrorCodes.contains((error as NSError).code), let segue = this.needAuthSegue {
+                                this.viewController?.performSegue(withIdentifier: segue, sender: this)
+                            } else {
+                                this.viewController?.handleError(error, sender: this)
+                            }
                         }
                     }
                 }

@@ -145,6 +145,14 @@ open class ActionController: CustomIBObject {
     }
 }
 
+extension ActionController: ActionStatusControllerDelegate {
+    
+    @discardableResult
+    @objc open func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool {
+        return true
+    }
+}
+
 public class ButtonActionController: ActionController {
     
     var button: UIButton? {

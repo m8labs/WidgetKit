@@ -60,7 +60,7 @@ open class ActionController: CustomIBObject {
         return predicateValue ? actionName : elseActionName
     }
     
-    var resolvedServiceProvider: ServiceProvider? {
+    var resolvedServiceProvider: ServiceProvider {
         var sp = serviceProvider
         if sp == nil {
             if let className = serviceProviderClassName ?? viewController?.serviceProviderClassName {
@@ -68,7 +68,7 @@ open class ActionController: CustomIBObject {
                 (sp as? StandardServiceProvider)?.widget = widget
             }
         }
-        return sp
+        return sp ?? StandardServiceProvider.default
     }
     
     var targetSelector: Selector? {
@@ -89,22 +89,19 @@ open class ActionController: CustomIBObject {
             return
         }
         let object = object ?? content
-        if let service = resolvedServiceProvider {
-            status = ActionStatusController(owner: self, actionName: actionName)
-            (viewController as? SchemeDiagnosticsProtocol)?.beforeAction?(actionName, content: object, sender: self)
-            let selector = targetSelector
-            if service.responds(to: selector) {
-                service.perform(selector, with: object, with: sender)
-            } else {
-                service.performAction(actionName, with: object, from: sender, completion: nil)
-            }
+        let service = resolvedServiceProvider
+        status = ActionStatusController(owner: self, actionName: actionName)
+        (viewController as? SchemeDiagnosticsProtocol)?.beforeAction?(actionName, content: object, sender: self)
+        let selector = targetSelector
+        if service.responds(to: selector) {
+            service.perform(selector, with: object, with: sender)
         } else {
-            print("\(self): Service provider for action '\(actionName)' not found. Set 'ActionController.serviceProvider' or 'ActionController.serviceProviderClassName' properties.")
+            service.performAction(actionName, with: object, from: sender, completion: nil)
         }
     }
     
     func cancelServiceAction(with object: Any? = nil) {
-        guard let service = resolvedServiceProvider else { return }
+        let service = resolvedServiceProvider
         let object = object ?? content
         let selector = cancelSelector
         if service.responds(to: selector) {

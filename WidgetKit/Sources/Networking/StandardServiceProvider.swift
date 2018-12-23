@@ -339,3 +339,7 @@ extension StandardServiceProvider: NetworkDiagnosticsProtocol {
         printResponse(response, data: data, for: action)
     }
 }
+
+extension StandardServiceProvider {
+    public static var `default` = StandardServiceProvider()
+}

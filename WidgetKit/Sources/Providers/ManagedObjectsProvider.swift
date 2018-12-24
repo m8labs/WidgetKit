@@ -50,14 +50,15 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
         return predicate
     }
     
-    private func predicateFromString(_ string: String?) -> NSPredicate? {
-        return string != nil ? NSPredicate(format: string!) : nil
+    private func predicateFromString(_ format: String) -> NSPredicate {
+        guard let content = viewController.content else { return NSPredicate(format: format) }
+        return NSPredicate(format: format).withSubstitutionVariables(["content": content])
     }
     
     private func predicate() -> NSPredicate? {
         var predicates = [NSPredicate]()
-        if let mainPredicate = predicateFromString(predicateFormat) {
-            predicates.append(mainPredicate)
+        if let format = predicateFormat {
+            predicates.append(predicateFromString(format))
         }
         if let masterPredicate = masterPredicate() {
             predicates.append(masterPredicate)

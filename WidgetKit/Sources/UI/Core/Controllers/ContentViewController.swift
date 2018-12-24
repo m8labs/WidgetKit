@@ -66,7 +66,13 @@ open class ContentViewController: UIViewController, ContentDisplayProtocol, Obse
             for case let object as CustomIBObject in objects {
                 object.setup()
             }
+            let sorted = objects.compactMap { $0 as? CustomIBObject } .sorted { $0.dependencyDepth() > $1.dependencyDepth() }
+            var prepared = [CustomIBObject]()
+            if sorted.first?.dependency != nil {
+                prepared = sorted.first?.prepare() ?? []
+            }
             for case let object as CustomIBObject in objects {
+                guard !prepared.contains(object) else { continue }
                 object.prepare()
             }
         }

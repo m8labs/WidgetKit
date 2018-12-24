@@ -263,6 +263,12 @@ open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
             masterObject = viewController.content as? NSObject
         }
     }
+    
+    open override func prepare() -> [CustomIBObject] {
+        let prepared = super.prepare()
+        fetch()
+        return prepared
+    }
 }
 
 public class ItemsCollection: BaseContentProvider {

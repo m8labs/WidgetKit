@@ -73,6 +73,7 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
     
     open override func setup() {
         super.setup()
+        dependency = mainContentProvider
         mainContentProvider?.contentConsumer = self
         if let searchController = searchController {
             if searchController.contentProvider == nil {
@@ -82,13 +83,6 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
             }
         }
         setupObservers()
-    }
-    
-    open override func prepare() {
-        super.prepare()
-        if let mainContentProvider = mainContentProvider {
-            mainContentProvider.fetch()
-        }
     }
 }
 

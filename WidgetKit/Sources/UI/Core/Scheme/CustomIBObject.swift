@@ -25,9 +25,17 @@ import Foundation
 
 open class CustomIBObject: NSObject {
     
-    @objc open var alias: String?
+    @objc public var alias: String?
     
     public internal(set) weak var viewController: ContentViewController!
+    
+    @IBOutlet public var dependency: CustomIBObject? {
+        willSet {
+            if newValue?.dependency == self {
+                preconditionFailure("Cyclic dependency not allowed: \(type(of: newValue!)) to \(type(of: self))")
+            }
+        }
+    }
     
     public var bundle: Bundle {
         return viewController.nibBundle ?? Bundle.main
@@ -37,9 +45,24 @@ open class CustomIBObject: NSObject {
         return viewController.widget
     }
     
-    open func setup() { }
+    open func setup() {
+        //
+    }
     
-    open func prepare() { }
+    @discardableResult
+    open func prepare() -> [CustomIBObject] {
+        return (dependency?.prepare() ?? []) + [self]
+    }
+    
+    func dependencyDepth() -> Int {
+        var depth = 0
+        var obj: CustomIBObject? = dependency
+        while obj != nil {
+            depth += 1
+            obj = obj!.dependency
+        }
+        return depth
+    }
 }
 
 public class ObjectsDictionaryProxy: NSObject {
@@ -91,3 +114,4 @@ public class UserDefaultsProxy: NSObject {
         return value
     }
 }
+

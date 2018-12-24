@@ -175,9 +175,10 @@ open class TableDisplayController: BaseDisplayController {
         super.setup()
     }
     
-    open override func prepare() {
-        super.prepare()
+    open override func prepare() -> [CustomIBObject] {
+        let prepared = super.prepare()
         vars = ObjectsDictionaryProxy(copy: viewController.vars)
+        return prepared
     }
 }
 

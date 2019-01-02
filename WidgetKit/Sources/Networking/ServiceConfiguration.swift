@@ -27,6 +27,10 @@ public enum ClearPolicy: String {
     case none, before, after
 }
 
+public enum RequestEncoding: String {
+    case json, url, plist
+}
+
 public protocol ServiceConfigurationProtocol {
     
     var baseUrl: String? { get }
@@ -54,6 +58,8 @@ public protocol ServiceConfigurationProtocol {
     func setters(for action: String) -> [String: Any]
     
     func url(for action: String) -> String?
+    
+    func encoding(for action: String) -> RequestEncoding
     
     func isUpload(for action: String) -> Bool
     
@@ -218,6 +224,11 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
         return keyPath as? String ?? "error"
     }
     
+    public func encoding(for action: String) -> RequestEncoding {
+        let encoding = configDict?.value(forKeyPath: "actions.\(action).encoding") ?? configDict?.value(forKeyPath: "defaults.encoding")
+        return RequestEncoding(rawValue: encoding as? String ?? "json") ?? .json
+    }
+    
     public func nextAction(for action: String) -> String? {
         return configDict?.value(forKeyPath: "actions.\(action).nextAction") as? String
     }
@@ -254,7 +265,12 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
             if request == nil {
                 do {
                     request = try URLRequest(url: url, method: httpMethod(for: action), headers: headers(for: action))
-                    request = try URLEncoding.httpBody.encode(request!, with: parameters)
+                    switch encoding(for: action) {
+                    case .plist:
+                        request = try PropertyListEncoding.default.encode(request!, with: parameters)
+                    default:
+                        request = try JSONEncoding.default.encode(request!, with: parameters)
+                    }
                     requestModifier?(action, &request!)
                 } catch {
                     print(error)

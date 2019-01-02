@@ -50,7 +50,7 @@ public class SearchActionController: ActionController {
         }
     }
     
-    open override var content: Any? {
+    open override var params: Any? {
         return [TextInputView.inputFieldName: searchText]
     }
     

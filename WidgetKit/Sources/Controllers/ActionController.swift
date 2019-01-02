@@ -41,10 +41,19 @@ open class ActionController: CustomIBObject {
     
     @objc public private(set) var status: ActionStatusController?
     
-    var vars: ObjectsDictionaryProxy?
+    @objc open var params: Any? {
+        return form?.formValue
+    }
     
     @objc open var content: Any? {
-        return form?.formValue
+        return viewController.content
+    }
+    
+    var args: [String: Any] {
+        var dict = [String: Any]()
+        dict["content"] = content
+        dict["params"] = params
+        return dict
     }
     
     var predicate: NSPredicate? {
@@ -53,7 +62,7 @@ open class ActionController: CustomIBObject {
     }
     
     var predicateValue: Bool {
-        return predicate?.evaluate(with: vars ?? viewController.vars) ?? true
+        return predicate?.evaluate(with: viewController.vars) ?? true
     }
     
     var resolvedActionName: String? {
@@ -88,7 +97,7 @@ open class ActionController: CustomIBObject {
             print("Action for the \(self) was resolved to nil.")
             return
         }
-        let object = object ?? content
+        let object = object ?? args
         let service = resolvedServiceProvider
         status = ActionStatusController(owner: self, actionName: actionName)
         (viewController as? SchemeDiagnosticsProtocol)?.beforeAction?(actionName, content: object, sender: self)
@@ -102,12 +111,12 @@ open class ActionController: CustomIBObject {
     
     func cancelServiceAction(with object: Any? = nil) {
         let service = resolvedServiceProvider
-        let object = object ?? content
+        let object = object ?? args
         let selector = cancelSelector
         if service.responds(to: selector) {
             service.perform(selector, with: object)
         } else if let actionName = resolvedActionName {
-            service.cancelRequest(for: actionName, from: sender)
+            service.cancelRequest(for: actionName, from: self)
         }
     }
     
@@ -115,7 +124,7 @@ open class ActionController: CustomIBObject {
         if let target = target {
             let selector = targetSelector
             if target.responds(to: selector) {
-                target.perform(selector, with: content, with: sender)
+                target.perform(selector, with: args, with: self)
             } else {
                 performServiceAction()
             }
@@ -160,7 +169,7 @@ public class CellDetailActionController: ActionController {
     
     var masterObject: NSObject!
     
-    public override var content: Any? {
+    public override var params: Any? {
         return masterObject
     }
     
@@ -193,10 +202,6 @@ public class ButtonActionController: ActionController {
         return sender as? UIButton
     }
     
-    public override var content: Any? {
-        return form?.formValue ?? viewController?.content
-    }
-    
     public override func setup() {
         super.setup()
         button?.addTarget(self, action: #selector(performAction), for: .touchUpInside)
@@ -209,10 +214,6 @@ public class BarButtonActionController: ActionController {
         return sender as? UIBarButtonItem
     }
     
-    public override var content: Any? {
-        return form?.formValue ?? viewController?.content
-    }
-    
     public override func setup() {
         super.setup()
         barButtonItem?.target = self
@@ -221,10 +222,6 @@ public class BarButtonActionController: ActionController {
 }
 
 public class TableRefreshActionController: ActionController {
-    
-    public override var content: Any? {
-        return viewController?.content
-    }
     
     var tableView: UITableView? {
         return sender as? UITableView
@@ -240,10 +237,6 @@ public class TableRefreshActionController: ActionController {
 
 public class OnLoadActionController: ActionController {
     
-    public override var content: Any? {
-        return viewController?.content
-    }
-    
     public override func setup() {
         super.setup()
         perform(#selector(performAction), with: nil, afterDelay: 0)
@@ -253,10 +246,6 @@ public class OnLoadActionController: ActionController {
 public class TimerActionController: ActionController {
     
     @objc public var interval: TimeInterval = 60
-    
-    public override var content: Any? {
-        return viewController?.content
-    }
     
     public override func performAction() {
         super.performAction()

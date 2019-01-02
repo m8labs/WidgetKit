@@ -113,7 +113,7 @@ public class InfiniteScrollActionController: ActionController {
         return (sender as? UITableView)?.dataSource as! TableInfiniteScrollController
     }
     
-    public override var content: Any? {
+    public override var params: Any? {
         return trackScrollDown ? contentController?.contentProvider.last() : contentController?.contentProvider.first()
     }
     

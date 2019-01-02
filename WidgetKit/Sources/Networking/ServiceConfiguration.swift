@@ -241,7 +241,7 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
         var request: URLRequest? = nil
         if var url = self.url(for: action) {
             if let object = object as? NSObject {
-                url = String(format: url, with: object, pattern: String.keyPattern)
+                url = String(format: url, with: object, pattern: String.keyPathPattern)
             }
             url = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "<url>"
             var parameters = self.parameters(for: action)

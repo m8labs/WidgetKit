@@ -109,8 +109,8 @@ public class InfiniteScrollActionController: ActionController {
     
     @objc public var trackScrollDown = true
     
-    var contentController: TableInfiniteScrollController! {
-        return (sender as? UITableView)?.dataSource as! TableInfiniteScrollController
+    var contentController: TableInfiniteScrollController? {
+        return (sender as? UITableView)?.dataSource as? TableInfiniteScrollController
     }
     
     public override var params: Any? {

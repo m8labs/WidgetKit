@@ -32,10 +32,8 @@ public class KeyboardBottomConstraint: NSLayoutConstraint, ObserversStorageProto
     private var initialHeight: CGFloat = 0
     
     func adjustHeight(with notification: Notification, hide: Bool) {
-        guard let firstItemView = firstItem as? UIView, firstItemView == self.view else {
-            print("Warning: KeyboardBottomConstraint.view must be the same as KeyboardBottomConstraint.firstItem. Set `view` outlet or use “Reverse first and second item” in constraint settings.")
-            return
-        }
+        precondition(view != nil, "You need to set `\(KeyboardBottomConstraint.self).view` outlet.")
+        precondition(view === firstItem, "Warning: `\(KeyboardBottomConstraint.self).view` must be the same as `\(KeyboardBottomConstraint.self).firstItem`. Use “Reverse first and second item” in constraint settings.")
         guard let keyboardRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
         print(keyboardRect)
         let h = hide ? initialHeight : keyboardRect.height
@@ -44,11 +42,9 @@ public class KeyboardBottomConstraint: NSLayoutConstraint, ObserversStorageProto
         if animated {
             guard let duration = (notification.userInfo?[UIKeyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue else { return }
             guard let curve = (notification.userInfo?[UIKeyboardAnimationCurveUserInfoKey] as? NSNumber)?.uintValue else { return }
-            if let view = firstItem as? UIView {
-                UIView.animate(withDuration: duration, delay: 0, options: UIViewAnimationOptions(rawValue: curve), animations: {
-                    view.superview!.layoutIfNeeded()
-                })
-            }
+            UIView.animate(withDuration: duration, delay: 0, options: UIViewAnimationOptions(rawValue: curve), animations: {
+                self.view.superview!.layoutIfNeeded()
+            })
         }
     }
     

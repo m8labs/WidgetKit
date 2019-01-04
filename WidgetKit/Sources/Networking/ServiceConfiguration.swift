@@ -266,6 +266,8 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
                 do {
                     request = try URLRequest(url: url, method: httpMethod(for: action), headers: headers(for: action))
                     switch encoding(for: action) {
+                    case .url:
+                        request = try URLEncoding.httpBody.encode(request!, with: parameters)
                     case .plist:
                         request = try PropertyListEncoding.default.encode(request!, with: parameters)
                     default:

@@ -271,9 +271,10 @@ extension TableDisplayController: UITableViewDelegate {
         let systemView: UITableViewHeaderFooterView? = tableView.dequeueReusableHeaderFooterView(withIdentifier: type(of: self).systemHeaderFooterIdentifier)
         guard systemView != nil else { return nil }
         let cell = tableView.dequeueReusableCell(withIdentifier: identifier)
-        guard let customView = cell?.contentView.subviews.first as? ContentDisplayView else { return nil }
+        guard let customView = cell?.contentView.subviews.first as? ContentDisplayView, let object = contentProvider.item(at: IndexPath(row: 0, section: section)) else {
+            return nil
+        }
         systemView!.backgroundView = customView
-        let object = contentProvider.item(at: IndexPath(row: 0, section: section))
         configureSection(customView, object: object, section: section)
         return systemView
     }
@@ -320,6 +321,20 @@ extension TableDisplayController: UITableViewDelegate {
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return UITableViewAutomaticDimension }
         guard let h = cellSizeCalculator.heightForObject(with: object.objectId) else { return UITableViewAutomaticDimension }
         return h
+    }
+    
+    public func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        let identifier = sectionFooterIdentifier ?? type(of: self).defaultSectionFooterIdentifier
+        let cell = tableView.dequeueReusableCell(withIdentifier: identifier)
+        let count = contentProvider.itemsCountInSection(section)
+        return cell == nil || count == 0 ? 0 : tableView.sectionFooterHeight
+    }
+    
+    public func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        let identifier = sectionHeaderIdentifier ?? type(of: self).defaultSectionHeaderIdentifier
+        let cell = tableView.dequeueReusableCell(withIdentifier: identifier)
+        let count = contentProvider.itemsCountInSection(section)
+        return cell == nil || count == 0 ? 0 : tableView.sectionHeaderHeight
     }
 }
 

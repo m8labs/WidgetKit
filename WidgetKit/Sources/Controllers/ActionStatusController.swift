@@ -35,6 +35,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     @IBOutlet public private(set) weak var owner: ActionController?
     
     @objc public private(set) var inProgress = false
+    @objc public private(set) var isReady = false
     @objc public private(set) var isSuccess = false
     @objc public private(set) var isFailure = false
     
@@ -57,6 +58,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                 if let this = self {
                     this.inProgress = true
                     this.isSuccess = false
+                    this.isReady = false
                     this.isFailure = false
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, result: nil, error: nil)
@@ -66,6 +68,18 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                 if let this = self {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: nil, sender: this)
                     this.inProgress = false
+                    this.isReady = true
+                    this.isSuccess = false
+                    this.isFailure = false
+                    this.viewController?.refresh(elements: this.elements)
+                    this.owner?.statusChanged(this, result: n.objectFromUserInfo, error: nil)
+                }
+            },
+            action.notification.onSuccess.subscribe(to: owner) { [weak self] n in
+                if let this = self {
+                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: nil, sender: this)
+                    this.inProgress = false
+                    this.isReady = false
                     this.isSuccess = true
                     this.isFailure = false
                     this.viewController?.refresh(elements: this.elements)
@@ -76,6 +90,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                 if let this = self {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: n.errorFromUserInfo, sender: this)
                     this.inProgress = false
+                    this.isReady = false
                     this.isSuccess = false
                     this.isFailure = true
                     this.viewController?.refresh(elements: this.elements)

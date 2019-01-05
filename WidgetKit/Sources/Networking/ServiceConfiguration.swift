@@ -31,6 +31,13 @@ public enum RequestEncoding: String {
     case json, url, plist
 }
 
+extension TimeZone {
+    
+    static var GMT: TimeZone {
+        return TimeZone(secondsFromGMT: 0)!
+    }
+}
+
 public protocol ServiceConfigurationProtocol {
     
     var baseUrl: String? { get }
@@ -88,8 +95,8 @@ open class ServiceConfiguration {
     
     var configDict: NSMutableDictionary?
     
-    private var dateTransformers: [String: [String: String]]? {
-        return configDict?.value(forKeyPath: "options.transformers.date") as? [String: [String: String]]
+    private var dateTransformers: [String: [String: Any]]? {
+        return configDict?.value(forKeyPath: "options.transformers.date") as? [String: [String: Any]]
     }
     
     private var requestModifier: ((String, inout URLRequest) -> Void)?
@@ -107,8 +114,21 @@ open class ServiceConfiguration {
             }
         }
         dateTransformers?.forEach { t in
-            ValueTransformer.setDateTransformer(name: t.key, dateFormat: t.value["format"], dateStyle: style(t.value["dateStyle"]),
-                                                timeStyle: style(t.value["timeStyle"]), locale: Locale(identifier: t.value["locale"] ?? "en_US_POSIX"))
+            let timeZone = TimeZone(secondsFromGMT: 3600 * (t.value["hoursFromGMT"] as? Int ?? 0)) ?? TimeZone.GMT
+            if let dataFormat = t.value["dataFormat"] as? String {
+                ValueTransformer.setDateTransformer(name: t.key,
+                                                    dataFormat: dataFormat,
+                                                    storeFormat: t.value["storeFormat"] as? String,
+                                                    displayFormat: t.value["displayFormat"] as? String,
+                                                    timeZone: timeZone,
+                                                    locale: Locale(identifier: t.value["locale"] as? String ?? "en_US_POSIX"))
+            } else {
+                ValueTransformer.setDateTransformer(name: t.key,
+                                                    dateStyle: style(t.value["dateStyle"] as? String),
+                                                    timeStyle: style(t.value["timeStyle"] as? String),
+                                                    timeZone: timeZone,
+                                                    locale: Locale(identifier: t.value["locale"] as? String ?? "en_US_POSIX"))
+            }
         }
     }
     

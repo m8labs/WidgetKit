@@ -26,7 +26,46 @@ import Foundation
 extension ValueTransformer {
     
     public static func setDateTransformer(name: String,
-                                          dateFormat: String?,
+                                          dataFormat: String?,
+                                          storeFormat: String? = nil,
+                                          displayFormat: String? = nil,
+                                          timeZone: TimeZone = TimeZone.current,
+                                          locale: Locale = Locale.current) {
+        let dataFormatter = dataFormat != nil ? DateFormatter() : nil
+        dataFormatter?.dateFormat = dataFormat
+        dataFormatter?.timeZone = timeZone
+        dataFormatter?.locale = locale
+        let storeFormatter = storeFormat != nil ? DateFormatter() : nil
+        storeFormatter?.dateFormat = storeFormat
+        storeFormatter?.timeZone = timeZone
+        storeFormatter?.locale = locale
+        let displayFormatter = displayFormat != nil ? DateFormatter() : nil
+        displayFormatter?.dateFormat = displayFormat
+        displayFormatter?.timeZone = TimeZone.current
+        displayFormatter?.locale = locale
+        ValueTransformer.grt_setValueTransformer(withName: name, transform: { value -> Any? in
+            if let date = value as? Date { // from CoreData to UI
+                let string = displayFormatter?.string(from: date)
+                return string
+            } else if let string = value as? String { // from JSON to CoreData
+                let date = dataFormatter?.date(from: string)
+                if let storeFormatter = storeFormatter, let date = date {
+                    return storeFormatter.string(from: date)
+                } else {
+                    return date
+                }
+            }
+            return nil
+        }) { value -> Any? in // from CoreData to JSON
+            if let date = value as? Date {
+                let string = dataFormatter?.string(from: date)
+                return string
+            }
+            return nil
+        }
+    }
+    
+    public static func setDateTransformer(name: String,
                                           dateStyle: DateFormatter.Style = .none,
                                           timeStyle: DateFormatter.Style = .none,
                                           timeZone: TimeZone = TimeZone.current,
@@ -34,7 +73,6 @@ extension ValueTransformer {
         let formatter = DateFormatter()
         formatter.dateStyle = dateStyle
         formatter.timeStyle = timeStyle
-        formatter.dateFormat = dateFormat
         formatter.timeZone = timeZone
         formatter.locale = locale
         ValueTransformer.grt_setValueTransformer(withName: name, transform: { value -> Any? in

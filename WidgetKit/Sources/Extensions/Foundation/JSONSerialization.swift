@@ -86,10 +86,10 @@ extension Data {
     }
 }
 
-extension Dictionary {
+extension Dictionary where Key == String {
     
-    func substitute(_ object: NSObject) -> Dictionary {
-        return substituteObject(self, with: object) as! Dictionary
+    func substitute(_ object: NSObject) -> [String: Any] {
+        return substituteJsonObject(self, with: object) as! [String: Any]
     }
     
     public func jsonString() -> String? {
@@ -97,10 +97,23 @@ extension Dictionary {
     }
 }
 
-fileprivate func substituteObject(_ json: Any, with source: NSObject) -> Any {
-    if var string = JSONSerialization.jsonObjectToString(json) {
-        string = String(format: string, with: source, pattern: String.keyPathPattern)
-        return JSONSerialization.jsonObject(with: string) ?? json
+func substituteJsonObject(_ target: Any, with source: NSObject) -> Any {
+    if var array = target as? [Any] {
+        for i in 0..<array.count {
+            array[i] = substituteJsonObject(array[i], with: source)
+        }
+        return array
+    } else if var dict = target as? [String: Any] {
+        for (key, value) in dict {
+            if let string = value as? String {
+                dict[key] = String(format: string, with: source, pattern: String.keyPathPattern)
+            } else if let object = value as? [String: Any] {
+                dict[key] = substituteJsonObject(object, with: source)
+            } else if let array = value as? [Any] {
+                dict[key] = substituteJsonObject(array, with: source)
+            }
+        }
+        return dict
     }
-    return json
+    return target
 }

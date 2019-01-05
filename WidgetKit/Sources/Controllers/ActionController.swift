@@ -250,6 +250,7 @@ public class OnLoadActionController: ActionController {
 public class TimerActionController: ActionController {
     
     @objc public var interval: TimeInterval = 60
+    @objc public var runImmediately: Bool = true
     
     public override func performAction() {
         guard viewController != nil else {
@@ -261,6 +262,6 @@ public class TimerActionController: ActionController {
     
     public override func setup() {
         super.setup()
-        perform(#selector(performAction), with: nil, afterDelay: interval)
+        perform(#selector(performAction), with: nil, afterDelay: runImmediately ? 0 : interval)
     }
 }

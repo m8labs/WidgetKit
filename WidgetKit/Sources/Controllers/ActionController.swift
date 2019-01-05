@@ -94,8 +94,7 @@ open class ActionController: CustomIBObject {
     
     func performServiceAction(with object: Any? = nil) {
         guard let actionName = resolvedActionName else {
-            print("Action for the \(self) was resolved to nil.")
-            return
+            return print("Action for the \(self) was resolved to nil.")
         }
         let object = object ?? args
         let service = resolvedServiceProvider
@@ -110,6 +109,9 @@ open class ActionController: CustomIBObject {
     }
     
     func cancelServiceAction(with object: Any? = nil) {
+        guard viewController != nil else {
+            return print("Warning: view controller for this action doesn't exist.")
+        }
         let service = resolvedServiceProvider
         let object = object ?? args
         let selector = cancelSelector
@@ -134,9 +136,11 @@ open class ActionController: CustomIBObject {
     }
     
     @objc open func performAction() {
+        guard viewController != nil else {
+            return print("Warning: view controller for this action doesn't exist.")
+        }
         guard form == nil || form!.formValue != nil else {
-            print("Warning: Form exists but value was nil - aborting action \(actionName!).")
-            return
+            return print("Warning: Form exists but value was nil - aborting action \(actionName!).")
         }
         after(actionDelay) {
             self._performAction()
@@ -174,7 +178,7 @@ public class CellDetailActionController: ActionController {
     }
     
     func performSegue(_ segue: String, with object: Any) {
-        viewController.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
+        viewController?.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
     }
     
     public override func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool {
@@ -248,6 +252,9 @@ public class TimerActionController: ActionController {
     @objc public var interval: TimeInterval = 60
     
     public override func performAction() {
+        guard viewController != nil else {
+            return NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(performAction), object: nil)
+        }
         super.performAction()
         perform(#selector(performAction), with: nil, afterDelay: interval)
     }

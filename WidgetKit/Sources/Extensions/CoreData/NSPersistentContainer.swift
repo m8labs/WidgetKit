@@ -66,7 +66,7 @@ public extension NSPersistentContainer {
     func enqueueBackgroundTask(_ closure: @escaping (NSManagedObjectContext)->Void) {
         NSPersistentContainer.defaultQueue.addOperation {
             let context = self.newBackgroundContext()
-            context.perform {
+            context.performAndWait {
                 closure(context)
             }
         }

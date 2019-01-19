@@ -136,13 +136,9 @@ extension TextInputView: UITextViewDelegate, UITextFieldDelegate {
 
 extension TextInputView {
     
-    public override var wx_value: Any? {
-        get {
-            return text
-        }
-        set {
-            text = newValue as? String
-        }
+    public override var wx_fieldValue: Any? {
+        get { return (textField ?? textView)?.wx_fieldValue }
+        set { (textField ?? textView)?.wx_fieldValue = newValue }
     }
 }
 

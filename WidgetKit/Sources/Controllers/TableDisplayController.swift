@@ -44,7 +44,7 @@ open class TableDisplayController: BaseDisplayController {
     
     @objc public var allowDeletion = false
     
-    @objc public var collectSelectedObjects = false
+    @objc public var handleSelection = false
     
     @objc public var defaultSelectionBehavior = false
     
@@ -74,16 +74,7 @@ open class TableDisplayController: BaseDisplayController {
     
     @IBOutlet var deleteController: ActionController?
     
-    public private(set) var selectedObjectsIDs = NSMutableArray()
-    
-    public var selectedObjects: [Any] {
-        return contentProvider.allItems.filter { a in
-            if let objectId = (a as? NSObject)?.objectId {
-                return selectedObjectsIDs.contains(objectId)
-            }
-            return false
-        }
-    }
+    public private(set) var selectedObjects = Set<NSObject>()
     
     fileprivate var cellSizeCalculator = TextSizeCalculator()
     
@@ -213,18 +204,27 @@ extension TableDisplayController: UITableViewDelegate {
     
     // Object selection handling
     
-    private func handleSelectionOf(_ object: NSObject, at indexPath: IndexPath) {
-        if selectedObjectsIDs.contains(object.objectId) {
-            selectedObjectsIDs.remove(object.objectId)
-            tableView.deselectRow(at: indexPath, animated: false)
+    private func handleSelectionForCell(_ cell: UITableViewCell, object: NSObject, at indexPath: IndexPath) {
+        if selectedObjects.contains(object) {
+            handleDeselectionForCell(cell, object: object, at: indexPath)
         } else {
             if !tableView.allowsMultipleSelection {
-                selectedObjectsIDs.removeAllObjects()
+                selectedObjects.removeAll()
             }
-            if !selectedObjectsIDs.contains(object.objectId) {
-                selectedObjectsIDs.add(object.objectId)
+            selectedObjects.insert(object)
+            if defaultSelectionBehavior {
+                cell.accessoryType = .checkmark
             }
+            cell.isSelected = true
         }
+    }
+    
+    private func handleDeselectionForCell(_ cell: UITableViewCell, object: NSObject, at indexPath: IndexPath) {
+        selectedObjects.remove(object)
+        if defaultSelectionBehavior {
+            cell.accessoryType = .none
+        }
+        cell.isSelected = false
     }
     
     open func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -236,11 +236,8 @@ extension TableDisplayController: UITableViewDelegate {
         if performSegueForCells > 0 {
             viewController.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
         } else {
-            if collectSelectedObjects {
-                handleSelectionOf(object, at: indexPath)
-            }
-            if defaultSelectionBehavior {
-                cell.accessoryType = .checkmark
+            if handleSelection {
+                handleSelectionForCell(cell, object: object, at: indexPath)
             }
             cellSelected?(cell, object, indexPath)
         }
@@ -249,16 +246,15 @@ extension TableDisplayController: UITableViewDelegate {
     open func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
         guard let cell = tableView.cellForRow(at: indexPath) as? ContentTableViewCell else { return }
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
-        selectedObjectsIDs.remove(object.objectId)
-        if defaultSelectionBehavior {
-            cell.accessoryType = .none
+        if handleSelection {
+            handleDeselectionForCell(cell, object: object, at: indexPath)
         }
         cellDeselected?(cell, object, indexPath)
     }
     
     open func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-        guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
-        let isSelected = selectedObjectsIDs.contains(object.objectId)
+        guard handleSelection, let object = contentProvider.item(at: indexPath) as? NSObject else { return }
+        let isSelected = selectedObjects.contains(object)
         cell.isSelected = isSelected
         if defaultSelectionBehavior {
             cell.accessoryType = isSelected ? .checkmark : .none

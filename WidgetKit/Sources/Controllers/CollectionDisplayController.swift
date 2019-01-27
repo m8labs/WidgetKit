@@ -32,7 +32,7 @@ open class CollectionDisplayController: BaseDisplayController {
     
     @objc public var performSegueForCells = -1
     
-    @objc public var collectSelectedObjects = false
+    @objc public var handleSelection = false
     
     @objc public var centerContent = false
     
@@ -60,16 +60,7 @@ open class CollectionDisplayController: BaseDisplayController {
     
     @IBOutlet public var emptyDataView: UIView?
     
-    public private(set) var selectedObjectsIDs = NSMutableArray()
-    
-    public var selectedObjects: [Any] {
-        return contentProvider.allItems.filter { a in
-            if let objectId = (a as? NSObject)?.objectId {
-                return selectedObjectsIDs.contains(objectId)
-            }
-            return false
-        }
-    }
+    public private(set) var selectedObjects = Set<NSObject>()
     
     fileprivate var cachedItemSize: CGSize?
     
@@ -155,45 +146,51 @@ extension CollectionDisplayController: UICollectionViewDataSource {
 
 extension CollectionDisplayController: UICollectionViewDelegate {
     
-    open func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        if let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell {
-            if performSegueForCells > 0 {
-                viewController.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
-            } else if let item = contentProvider.item(at: indexPath) {
-                if collectSelectedObjects {
-                    if let object = item as? NSObject {
-                        if selectedObjectsIDs.contains(object.objectId) {
-                            selectedObjectsIDs.remove(object.objectId)
-                            collectionView.deselectItem(at: indexPath, animated: false)
-                        } else {
-                            if !collectionView.allowsMultipleSelection {
-                                selectedObjectsIDs.removeAllObjects()
-                            }
-                            if !selectedObjectsIDs.contains(object.objectId) {
-                                selectedObjectsIDs.add(object.objectId)
-                            }
-                        }
-                    }
-                }
-                cellSelected?(cell, item, indexPath)
+    // Object selection handling
+    
+    private func handleSelectionForCell(_ cell: UICollectionViewCell, object: NSObject, at indexPath: IndexPath) {
+        if selectedObjects.contains(object) {
+            handleDeselectionForCell(cell, object: object, at: indexPath)
+        } else {
+            if !collectionView.allowsMultipleSelection {
+                selectedObjects.removeAll()
             }
+            selectedObjects.insert(object)
+            cell.isSelected = true
+        }
+    }
+    
+    private func handleDeselectionForCell(_ cell: UICollectionViewCell, object: NSObject, at indexPath: IndexPath) {
+        selectedObjects.remove(object)
+        cell.isSelected = false
+    }
+    
+    open func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell else { return }
+        guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
+        if performSegueForCells > 0 {
+            viewController.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
+        } else {
+            if handleSelection {
+                handleSelectionForCell(cell, object: object, at: indexPath)
+            }
+            cellSelected?(cell, object, indexPath)
         }
     }
     
     open func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
-        if let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell, let item = contentProvider.item(at: indexPath) {
-            if let object = item as? NSObject {
-                selectedObjectsIDs.remove(object.objectId)
-            }
-            cellDeselected?(cell, item, indexPath)
+        guard let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell else { return }
+        guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
+        if handleSelection {
+            handleDeselectionForCell(cell, object: object, at: indexPath)
         }
+        cellDeselected?(cell, object, indexPath)
     }
     
     open func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if let object = contentProvider.item(at: indexPath) as? NSObject  {
-            let isSelected = selectedObjectsIDs.contains(object.objectId)
-            cell.isSelected = isSelected
-        }
+        guard handleSelection, let object = contentProvider.item(at: indexPath) as? NSObject else { return }
+        let isSelected = selectedObjects.contains(object)
+        cell.isSelected = isSelected
     }
 }
 

@@ -69,6 +69,7 @@
 		7901A96220CDDAA400E0356B /* Groot.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 7901A95820CDD95C00E0356B /* Groot.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7901A96320CDDAA400E0356B /* ZIPFoundation.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 7901A95620CDD95C00E0356B /* ZIPFoundation.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7901A96520CE92F100E0356B /* FileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7901A96420CE92F100E0356B /* FileManager.swift */; };
+		799B4B0E21FE47C600FF3C8F /* FormTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 799B4B0D21FE47C600FF3C8F /* FormTableView.swift */; };
 		79EB67EB20CFE56A000FBB55 /* CollectionPageScrollController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB67EA20CFE56A000FBB55 /* CollectionPageScrollController.swift */; };
 		79EB67EE20D2A18C000FBB55 /* WidgetDemo.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 79EB67EC20D2A18C000FBB55 /* WidgetDemo.bundle */; };
 		79EB67F120D2B2F5000FBB55 /* WidgetDemo.zip in Resources */ = {isa = PBXBuildFile; fileRef = 79EB67F020D2B2F5000FBB55 /* WidgetDemo.zip */; };
@@ -162,6 +163,7 @@
 		7901A95820CDD95C00E0356B /* Groot.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Groot.framework; path = Carthage/Build/iOS/Groot.framework; sourceTree = "<group>"; };
 		7901A95920CDD95C00E0356B /* AlamofireImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AlamofireImage.framework; path = Carthage/Build/iOS/AlamofireImage.framework; sourceTree = "<group>"; };
 		7901A96420CE92F100E0356B /* FileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManager.swift; sourceTree = "<group>"; };
+		799B4B0D21FE47C600FF3C8F /* FormTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormTableView.swift; sourceTree = "<group>"; };
 		79EB67EA20CFE56A000FBB55 /* CollectionPageScrollController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CollectionPageScrollController.swift; sourceTree = "<group>"; };
 		79EB67EC20D2A18C000FBB55 /* WidgetDemo.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = WidgetDemo.bundle; sourceTree = "<group>"; };
 		79EB67F020D2B2F5000FBB55 /* WidgetDemo.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; path = WidgetDemo.zip; sourceTree = "<group>"; };
@@ -290,6 +292,7 @@
 			children = (
 				7901A87220CDD3E700E0356B /* FormDisplayView.swift */,
 				7901A87320CDD3E700E0356B /* ContentDisplayView.swift */,
+				799B4B0D21FE47C600FF3C8F /* FormTableView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -624,6 +627,7 @@
 				7901A8C120CDD3E700E0356B /* ContainerView.swift in Sources */,
 				7901A8CD20CDD3E700E0356B /* String.swift in Sources */,
 				7901A8C420CDD3E700E0356B /* StubServiceProvider.swift in Sources */,
+				799B4B0E21FE47C600FF3C8F /* FormTableView.swift in Sources */,
 				7901A8CC20CDD3E700E0356B /* Notification.swift in Sources */,
 				7901A8AF20CDD3E700E0356B /* FormDisplayView.swift in Sources */,
 				7901A8B720CDD3E700E0356B /* UIStoryboard+Bundle.swift in Sources */,

@@ -87,22 +87,22 @@ public class SearchActionController: ActionController {
         return searchText.count >= minimumTextLength
     }
     
-    @objc func _filter() {
+    @objc private func _filter() {
         contentProvider!.filterFormat = filterFormat
         contentProvider!.searchString = searchText
     }
     
-    @objc func _performAction() {
+    @objc private func _performAction() {
         guard actionName != nil, canSearch else { return }
         super.performAction()
     }
     
-    func _performSearch() {
+    private func _performSearch() {
         _filter()
         _performAction()
     }
     
-    func filter() {
+    private func filter() {
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(_filter), object: nil)
         perform(#selector(_filter), with: nil, afterDelay: filterThrottleInterval)
     }

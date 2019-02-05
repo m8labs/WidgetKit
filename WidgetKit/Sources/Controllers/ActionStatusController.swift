@@ -28,16 +28,22 @@ protocol ActionStatusControllerDelegate {
     func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool
 }
 
+enum ActionStatus {
+    case initial, inProgress, isReady, isSuccess, isFailure
+}
+
 open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     
     @IBOutlet public var elements: [NSObject]?
     
     @IBOutlet public private(set) weak var owner: ActionController?
     
-    @objc public private(set) var inProgress = false
-    @objc public private(set) var isReady = false
-    @objc public private(set) var isSuccess = false
-    @objc public private(set) var isFailure = false
+    var statusValue = ActionStatus.initial
+    
+    @objc public var inProgress: Bool { return statusValue == .inProgress }
+    @objc public var isReady: Bool { return statusValue == .isReady }
+    @objc public var isSuccess: Bool { return statusValue == .isSuccess }
+    @objc public var isFailure: Bool { return statusValue == .isFailure }
     
     @objc public var actionName: String?
     @objc public var errorTitle: String?
@@ -56,10 +62,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
         observers = [
             action.notification.onStart.subscribe(to: owner) { [weak self] _ in
                 if let this = self {
-                    this.inProgress = true
-                    this.isSuccess = false
-                    this.isReady = false
-                    this.isFailure = false
+                    this.statusValue = .inProgress
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, result: nil, error: nil)
                 }
@@ -67,10 +70,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
             action.notification.onReady.subscribe(to: owner) { [weak self] n in
                 if let this = self {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: nil, sender: this)
-                    this.inProgress = false
-                    this.isReady = true
-                    this.isSuccess = false
-                    this.isFailure = false
+                    this.statusValue = .isReady
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, result: n.objectFromUserInfo, error: nil)
                 }
@@ -78,10 +78,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
             action.notification.onSuccess.subscribe(to: owner) { [weak self] n in
                 if let this = self {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: nil, sender: this)
-                    this.inProgress = false
-                    this.isReady = false
-                    this.isSuccess = true
-                    this.isFailure = false
+                    this.statusValue = .isSuccess
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, result: n.objectFromUserInfo, error: nil)
                 }
@@ -89,10 +86,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
             action.notification.onError.subscribe(to: owner) { [weak self] n in
                 if let this = self {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: n.errorFromUserInfo, sender: this)
-                    this.inProgress = false
-                    this.isReady = false
-                    this.isSuccess = false
-                    this.isFailure = true
+                    this.statusValue = .isFailure
                     this.viewController?.refresh(elements: this.elements)
                     if let error = n.errorFromUserInfo {
                         if this.owner?.statusChanged(this, result: nil, error: error) ?? true {

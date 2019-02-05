@@ -158,7 +158,9 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
 extension ManagedObjectsProvider {
     
     public func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        contentConsumer?.prepareRenderContent?(from: self)
+        if let prepareRenderContent = contentConsumer?.prepareRenderContent, let _ = contentConsumer?.finalizeRenderContent {
+            prepareRenderContent(self)
+        }
     }
     
     public func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
@@ -179,7 +181,7 @@ extension ManagedObjectsProvider {
         else if type == .delete, let indexPath = indexPath {
             contentConsumer?.renderContent?(anObject, change: .delete, at: indexPath, from: self)
         }
-        else if type == .move, let oldIndexPath = indexPath, let newIndexPath = newIndexPath {
+        else if type == .move, let oldIndexPath = indexPath, let newIndexPath = newIndexPath, newIndexPath != oldIndexPath {
             contentConsumer?.renderContent?(anObject, change: .delete, at: oldIndexPath, from: self)
             contentConsumer?.renderContent?(anObject, change: .insert, at: newIndexPath, from: self)
         }

@@ -107,7 +107,7 @@ public class SearchActionController: ActionController {
         perform(#selector(_filter), with: nil, afterDelay: filterThrottleInterval)
     }
     
-    public override func performAction() {
+    public override func performAction(with object: Any? = nil) {
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(_performAction), object: nil)
         perform(#selector(_performAction), with: nil, afterDelay: actionThrottleInterval)
     }

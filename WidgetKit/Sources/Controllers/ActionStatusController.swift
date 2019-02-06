@@ -54,10 +54,17 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     
     public var observers: [Any] = []
     
+    @objc public var successSegue: String?
+    @objc public var successSegueDelay = 0.0
+    @objc public var successSegueKeyPath: String?
+    
+    func performSegue(_ segue: String, with object: Any) {
+        viewController?.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
+    }
+    
     public func setupObservers() {
-        guard let action = self.actionName else {
-            NSLog("'actionName' was not set to \(self)!")
-            return
+        guard let action = self.actionName ?? owner?.resolvedActionName else {
+            return print("'actionName' was not set to \(self)!")
         }
         observers = [
             action.notification.onStart.subscribe(to: owner) { [weak self] _ in
@@ -81,6 +88,21 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                     this.statusValue = .isSuccess
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, result: n.objectFromUserInfo, error: nil)
+                    if let segue = this.successSegue, let masterObject = n.objectFromUserInfo as? NSObject {
+                        if let keyPath = this.successSegueKeyPath {
+                            if let object = masterObject.value(forKeyPath: keyPath) {
+                                after(this.successSegueDelay) {
+                                    this.performSegue(segue, with: object)
+                                }
+                            } else {
+                                print("Object was not found by key path '\(type(of: masterObject)).\(keyPath)'")
+                            }
+                        } else {
+                            after(this.successSegueDelay) {
+                                this.performSegue(segue, with: masterObject)
+                            }
+                        }
+                    }
                 }
             },
             action.notification.onError.subscribe(to: owner) { [weak self] n in
@@ -107,7 +129,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
         setupObservers()
     }
     
-    public convenience init(owner: ActionController, actionName: String) {
+    public convenience init(owner: ActionController, actionName: String? = nil) {
         self.init()
         self.actionName = actionName
         self.owner = owner

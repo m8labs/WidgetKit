@@ -254,7 +254,7 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     
     @objc public var cancelOptionTitle = NSLocalizedString("Cancel", comment: "")
     
-    public override func performAction() {
+    public override func performAction(with object: Any? = nil) {
         let picker = UIImagePickerController()
         picker.delegate = self
         let pick: (UIImagePickerControllerSourceType) -> Void = { sourceType in

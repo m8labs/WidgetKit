@@ -117,7 +117,7 @@ public class InfiniteScrollActionController: ActionController {
         return trackScrollDown ? contentController?.contentProvider.last() : contentController?.contentProvider.first()
     }
     
-    public override func performAction() {
+    public override func performAction(with object: Any? = nil) {
         if let searchController = contentController?.searchController, searchController.isSearching {
             searchController.performAction()
         } else {
@@ -130,14 +130,14 @@ public class InfiniteScrollActionController: ActionController {
         if trackScrollDown {
             contentController?.infiniteScrollDown = { [weak self] in
                 guard let this = self else { return }
-                if !(this.status?.inProgress ?? false) {
+                if !this.status.inProgress {
                     this.performAction()
                 }
             }
         } else {
             contentController?.infiniteScrollUp = { [weak self] in
                 guard let this = self else { return }
-                if !(this.status?.inProgress ?? false) {
+                if !this.status.inProgress {
                     this.performAction()
                 }
             }

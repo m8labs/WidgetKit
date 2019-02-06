@@ -409,16 +409,18 @@ open class ContentTableViewCell: UITableViewCell, ContentDisplayProtocol {
     @objc var detailKeyPath: String?
     @objc var detailActionName: String?
     
-    @objc lazy var detailActionController = CellDetailActionController()
+    @objc lazy var detailActionController = ActionController()
     
-    fileprivate func performDetailSegueWith(_ object: NSObject) {
+    fileprivate func performDetailSegueWith(_ masterObject: NSObject) {
         guard let detailSegue = detailSegue, let detailKeyPath = detailKeyPath, let vc = viewController() as? ContentViewController else { return }
-        detailActionController.viewController = vc
-        detailActionController.segue = detailSegue
-        detailActionController.keyPath = detailKeyPath
-        detailActionController.masterObject = object
-        detailActionController.actionName = detailActionName
-        detailActionController.performAction()
+        if let detailObject = masterObject.value(forKeyPath: detailKeyPath) {
+            vc.performSegue(withIdentifier: detailSegue, sender: ContentWrapper(content: detailObject))
+        } else if detailActionName != nil { // detailObject doesn't exist yet, so create it, if detailActionName != nil
+            detailActionController.viewController = vc
+            detailActionController.actionName = detailActionName
+            detailActionController.status.successSegue = detailSegue
+            detailActionController.performAction(with: masterObject)
+        }
     }
     
     public fileprivate(set) var scheme: NSDictionary? {

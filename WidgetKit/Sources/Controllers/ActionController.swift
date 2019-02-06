@@ -39,7 +39,7 @@ open class ActionController: CustomIBObject {
     @objc public var actionDelay: Double = 0.0
     @objc public var serviceProviderClassName: String?
     
-    @objc public private(set) var status: ActionStatusController?
+    @objc lazy public private(set) var status = ActionStatusController(owner: self)
     
     @objc open var params: Any? {
         return form?.formValue
@@ -49,11 +49,11 @@ open class ActionController: CustomIBObject {
         return viewController.content
     }
     
-    var args: [String: Any] {
-        var dict = [String: Any]()
-        dict["content"] = content
-        dict["params"] = params
-        return dict
+    func makeArgs(with object: Any?) -> [String: Any] {
+        var args = [String: Any]()
+        args["content"] = content
+        args["params"] = object ?? params
+        return args
     }
     
     var predicate: NSPredicate? {
@@ -92,50 +92,50 @@ open class ActionController: CustomIBObject {
         return selector
     }
     
-    func performServiceAction(with object: Any? = nil) {
+    func performServiceAction(with object: Any?) {
         guard let actionName = resolvedActionName else {
             return print("Action for the \(self) was resolved to nil.")
         }
-        let object = object ?? args
         let service = resolvedServiceProvider
-        status = ActionStatusController(owner: self, actionName: actionName)
-        (viewController as? SchemeDiagnosticsProtocol)?.beforeAction?(actionName, content: object, sender: self)
+        status.setupObservers()
+        let args = makeArgs(with: object)
+        (viewController as? SchemeDiagnosticsProtocol)?.beforeAction?(actionName, content: args, sender: self)
         let selector = targetSelector
         if service.responds(to: selector) {
-            service.perform(selector, with: object, with: self)
+            service.perform(selector, with: args, with: self)
         } else {
-            service.performAction(actionName, with: object, from: self, completion: nil)
+            service.performAction(actionName, with: args, from: self, completion: nil)
         }
     }
     
-    func cancelServiceAction(with object: Any? = nil) {
+    func cancelServiceAction(with object: Any?) {
         guard viewController != nil else {
             return print("Warning: view controller for this action doesn't exist.")
         }
         let service = resolvedServiceProvider
-        let object = object ?? args
         let selector = cancelSelector
+        let args = makeArgs(with: object)
         if service.responds(to: selector) {
-            service.perform(selector, with: object)
+            service.perform(selector, with: args)
         } else if let actionName = resolvedActionName {
             service.cancelRequest(for: actionName, from: self)
         }
     }
     
-    private func _performAction() {
+    private func _performAction(with object: Any?) {
         if let target = target {
             let selector = targetSelector
             if target.responds(to: selector) {
-                target.perform(selector, with: args, with: self)
+                target.perform(selector, with: object, with: self)
             } else {
-                performServiceAction()
+                performServiceAction(with: object)
             }
         } else {
-            performServiceAction()
+            performServiceAction(with: object)
         }
     }
     
-    @objc open func performAction() {
+    @objc open func performAction(with object: Any? = nil) {
         guard viewController != nil else {
             return print("Warning: view controller for this action doesn't exist.")
         }
@@ -143,18 +143,25 @@ open class ActionController: CustomIBObject {
             return print("Warning: Form exists but value was nil - aborting action \(actionName!).")
         }
         after(actionDelay) {
-            self._performAction()
+            self._performAction(with: object)
         }
     }
     
-    @objc open func cancelAction() {
-        cancelServiceAction()
+    @objc open func cancelAction(with object: Any? = nil) {
+        cancelServiceAction(with: object)
     }
     
     open override func setup() {
         form?.actionController = self
         cancelButton?.addTarget(self, action: #selector(cancelAction), for: .touchUpInside)
         super.setup()
+    }
+}
+
+extension ActionController {
+    
+    @IBAction func defaultHandler(_ sender: Any?) {
+        performAction()
     }
 }
 
@@ -166,40 +173,6 @@ extension ActionController: ActionStatusControllerDelegate {
     }
 }
 
-public class CellDetailActionController: ActionController {
-    
-    @objc var segue: String!
-    @objc var keyPath: String?
-    
-    var masterObject: NSObject!
-    
-    public override var params: Any? {
-        return masterObject
-    }
-    
-    func performSegue(_ segue: String, with object: Any) {
-        viewController?.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
-    }
-    
-    public override func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool {
-        if status.isSuccess, let segue = segue, let object = result {
-            performSegue(segue, with: object)
-        }
-        return true
-    }
-    
-    public override func performAction() {
-        guard let masterObject = masterObject, let keyPath = keyPath, let segue = segue else {
-            return print("\(self) should have `masterObject`, `segue` and `keyPath`.")
-        }
-        if let object = masterObject.value(forKeyPath: keyPath) {
-            performSegue(segue, with: object)
-        } else if actionName != nil {
-            super.performAction()
-        }
-    }
-}
-
 public class ButtonActionController: ActionController {
     
     var button: UIButton? {
@@ -208,7 +181,7 @@ public class ButtonActionController: ActionController {
     
     public override func setup() {
         super.setup()
-        button?.addTarget(self, action: #selector(performAction), for: .touchUpInside)
+        button?.addTarget(self, action: #selector(defaultHandler(_:)), for: .touchUpInside)
     }
 }
 
@@ -221,7 +194,7 @@ public class BarButtonActionController: ActionController {
     public override func setup() {
         super.setup()
         barButtonItem?.target = self
-        barButtonItem?.action = #selector(performAction)
+        barButtonItem?.action = #selector(defaultHandler(_:))
     }
 }
 
@@ -234,7 +207,7 @@ public class TableRefreshActionController: ActionController {
     public override func setup() {
         super.setup()
         let refreshControl = UIRefreshControl()
-        refreshControl.addTarget(self, action: #selector(performAction), for: .valueChanged)
+        refreshControl.addTarget(self, action: #selector(defaultHandler(_:)), for: .valueChanged)
         tableView?.refreshControl = refreshControl
     }
 }
@@ -252,7 +225,7 @@ public class TimerActionController: ActionController {
     @objc public var interval: TimeInterval = 60
     @objc public var runImmediately: Bool = true
     
-    public override func performAction() {
+    public override func performAction(with object: Any? = nil) {
         guard viewController != nil else {
             return NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(performAction), object: nil)
         }

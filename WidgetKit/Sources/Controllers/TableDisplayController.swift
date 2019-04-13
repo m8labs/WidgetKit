@@ -103,6 +103,13 @@ open class TableDisplayController: BaseDisplayController {
         }
     }
     
+    open func shouldDisplayObject(_ object: Any) -> Bool {
+        if let managedObject = object as? NSManagedObject {
+            return managedObject != objectToDelete
+        }
+        return true
+    }
+    
     open func cellIdentifier(for object: Any, at indexPath: IndexPath) -> String {
         vars.setValue(object, forKey: ObjectsDictionaryProxy.contentKey)
         var cellId = ""
@@ -135,18 +142,12 @@ open class TableDisplayController: BaseDisplayController {
     }
     
     open override func setupObservers() {
-        observers = [
-            Notification.Name.TextSizeCalculatorReady.subscribe(to: cellSizeCalculator) { [weak self] n in
-                self?.reloadData()
-            }
-        ]
         if let renderOn = renderOn {
-            observers.append(
+            observers = [
                 NSNotification.Name(rawValue: renderOn).subscribe { [weak self] _ in
-                    self?.resetLayoutCache()
                     self?.reloadData()
                 }
-            )
+            ]
         }
     }
     
@@ -291,9 +292,9 @@ extension TableDisplayController: UITableViewDelegate {
         guard editingStyle == .delete, let object = contentProvider.item(at: indexPath) as? NSManagedObject else { return }
         objectToDelete = object
         tableView.reloadRows(at: [indexPath], with: .automatic) // animation
-        objectToDelete = nil
         deleteController?.performServiceAction(with: object)
         after(0.75) { // waiting for animation finished
+            self.objectToDelete = nil
             object.delete()
         }
     }
@@ -306,17 +307,12 @@ extension TableDisplayController: UITableViewDelegate {
     // Cell Sizing
     
     open func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        guard let object = contentProvider.item(at: indexPath) as? NSObject else { return UITableViewAutomaticDimension }
-        guard object != objectToDelete else { return 0 }
-        guard !systemAutomaticDimensionEnabled else { return UITableViewAutomaticDimension }
-        return heightForObject(object, at: indexPath)
+        guard let object = contentProvider.item(at: indexPath), shouldDisplayObject(object) else { return 0 }
+        return UITableViewAutomaticDimension
     }
     
     open func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
-        guard !systemAutomaticDimensionEnabled else { return UITableViewAutomaticDimension }
-        guard let object = contentProvider.item(at: indexPath) as? NSObject else { return UITableViewAutomaticDimension }
-        guard let h = cellSizeCalculator.heightForObject(with: object.objectId) else { return UITableViewAutomaticDimension }
-        return h
+        return UITableViewAutomaticDimension
     }
     
     public func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
@@ -356,31 +352,6 @@ extension TableDisplayController {
         if tableView.isScrollEnabled {
             tableView.flashScrollIndicators()
         }
-    }
-    
-    fileprivate func resetLayoutCache() {
-        cellSizeCalculator.resetCache()
-    }
-    
-    fileprivate func heightForObject(_ object: NSObject, at indexPath: IndexPath) -> CGFloat {
-        let objectId = object.objectId
-        if let h = cellSizeCalculator.heightForObject(with: objectId) {
-            return h
-        }
-        if !cellSizeCalculator.checkIfObjectEnqueued(with: objectId) {
-            let cellId = cellIdentifier(for: object, at: indexPath)
-            let size = CGSize(width: tableView.bounds.width, height: tableView.rowHeight)
-            guard let ct: ContentTableViewCell = cellTemplates[cellId] ?? UIView.loadNib(cellId, bundle: bundle, size: size) else {
-                return UITableViewAutomaticDimension
-            }
-            guard let elements = ct.contentDisplayView?.resizingElements else {
-                return UITableViewAutomaticDimension
-            }
-            configureCell(ct, object: object, indexPath: indexPath)
-            cellTemplates[cellId] = ct
-            cellSizeCalculator.enqueueElementsForCalculation(elements, with: objectId, fitSize: size)
-        }
-        return 0
     }
 }
 

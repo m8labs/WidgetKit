@@ -57,3 +57,26 @@ extension String {
         self = result
     }
 }
+
+public extension String {
+    
+    func size(fitting width: CGFloat, font: UIFont) -> CGSize {
+        let textContainer: NSTextContainer = {
+            let size = CGSize(width: width, height: .greatestFiniteMagnitude)
+            let container = NSTextContainer(size: size)
+            container.lineFragmentPadding = 0
+            return container
+        }()
+        let textStorage = NSTextStorage(string: self, attributes: [
+            NSAttributedString.Key.font: font,
+            NSAttributedString.Key(rawValue: "NSOriginalFont"): font
+            ])
+        let layoutManager: NSLayoutManager = {
+            let layoutManager = NSLayoutManager()
+            layoutManager.addTextContainer(textContainer)
+            textStorage.addLayoutManager(layoutManager)
+            return layoutManager
+        }()
+        return layoutManager.usedRect(for: textContainer).size
+    }
+}

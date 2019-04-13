@@ -121,7 +121,7 @@ extension UIView {
     var wx_resizingElements: [UIView] {
         var elements = [UIView]()
         allSubviews { view in
-            if view.wx.layoutHint.isEmpty == false {
+            if !view.wx.layoutHint.isEmpty {
                 elements.append(view)
             }
         }

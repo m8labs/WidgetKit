@@ -48,28 +48,8 @@ class TextSizeCalculator: NSObject {
         var layoutHint: LayoutHint!
         var textSize = CGSize.zero
         
-        private func textSizeThatFitsWidth(_ width: CGFloat) -> CGSize {
-            let textContainer: NSTextContainer = {
-                let size = CGSize(width: width, height: .greatestFiniteMagnitude)
-                let container = NSTextContainer(size: size)
-                container.lineFragmentPadding = 0
-                return container
-            }()
-            let textStorage = NSTextStorage(string: text, attributes: [
-                NSAttributedStringKey.font: font,
-                NSAttributedStringKey(rawValue: "NSOriginalFont"): font
-                ])
-            let layoutManager: NSLayoutManager = {
-                let layoutManager = NSLayoutManager()
-                layoutManager.addTextContainer(textContainer)
-                textStorage.addLayoutManager(layoutManager)
-                return layoutManager
-            }()
-            return layoutManager.usedRect(for: textContainer).size
-        }
-        
         func calculateSize() -> CGSize {
-            textSize = textSizeThatFitsWidth(layoutHint.maxWidth)
+            textSize = text.size(fitting: layoutHint.maxWidth, font: font)
             var size = CGSize(width: textSize.width + layoutHint.left + layoutHint.right, height: textSize.height + layoutHint.top + layoutHint.bottom)
             if layoutHint.minHeight >= 0 && size.height < layoutHint.minHeight {
                 size.height = layoutHint.minHeight
@@ -104,33 +84,6 @@ class TextSizeCalculator: NSObject {
         }
     }
     
-    var layoutCache = NSCache<NSString, TextLayoutSubject>()
-    
-    var calcQueue = [String: TextLayoutSubject]()
-    
-    @objc func calculateAllInQueue() {
-        asyncGlobal {
-            self.calcQueue.forEach { identifier, subject in
-                subject.calculateSize()
-            }
-            async {
-                let calculated = self.calcQueue.filter { identifier, subject in
-                    subject.totalHeight > 0
-                }
-                calculated.forEach { identifier, subject in
-                    self.layoutCache.setObject(subject, forKey: identifier as NSString)
-                    self.calcQueue.removeValue(forKey: identifier)
-                }
-                Notification.Name.TextSizeCalculatorReady.post(object: self)
-            }
-        }
-    }
-    
-    func resetCache() {
-        layoutCache.removeAllObjects()
-        calcQueue.removeAll()
-    }
-    
     func calculateSubject(_ subject: [(text: String, font: UIFont, layoutHint: LayoutHint)], minTotalHeight: CGFloat) -> CGFloat {
         let layoutSubject = TextLayoutSubject()
         layoutSubject.minTotalHeight = minTotalHeight
@@ -144,45 +97,6 @@ class TextSizeCalculator: NSObject {
         layoutSubject.calculateSize()
         return layoutSubject.totalHeight
     }
-    
-    func enqueueSubjectForCalculation(_ subject: [(text: String, font: UIFont, layoutHint: LayoutHint)],
-                                      with identifier: String, minTotalHeight: CGFloat) {
-        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(calculateAllInQueue), object: nil)
-        let layoutSubject = TextLayoutSubject()
-        layoutSubject.minTotalHeight = minTotalHeight
-        subject.forEach { item in
-            let layoutItem = TextLayoutItem()
-            layoutItem.text = item.text
-            layoutItem.font = item.font
-            layoutItem.layoutHint = item.layoutHint
-            layoutSubject.add(layoutItem)
-        }
-        calcQueue[identifier] = layoutSubject
-        perform(#selector(calculateAllInQueue), with: nil, afterDelay: 0.01, inModes: [RunLoopMode.commonModes])
-    }
-    
-    func enqueueElementsForCalculation(_ elements: [UIView], with identifier: String, fitSize size: CGSize) {
-        var subject = [(text: String, font: UIFont, layoutHint: LayoutHint)]()
-        for element in elements {
-            element.wx.layoutHint.maxWidth = size.width - element.wx.layoutHint.left - element.wx.layoutHint.right
-            subject.append((text: element.value(forKey: "text") as! String,
-                            font: element.value(forKey: "font") as! UIFont,
-                            layoutHint: element.wx.layoutHint))
-        }
-        enqueueSubjectForCalculation(subject, with: identifier, minTotalHeight: size.height)
-    }
-    
-    func checkIfObjectEnqueued(with identifier: String) -> Bool {
-        return calcQueue[identifier] != nil
-    }
-    
-    func heightForObject(with identifier: String) -> CGFloat? {
-        return layoutCache.object(forKey: identifier as NSString)?.height
-    }
-}
-
-extension Notification.Name {
-    public static let TextSizeCalculatorReady = Notification.Name(rawValue: "TextSizeCalculatorReady")
 }
 
 extension UIView {

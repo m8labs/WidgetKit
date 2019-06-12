@@ -55,7 +55,7 @@ open class StubServiceProvider: StandardServiceProvider {
     
     override func request(for action: String, with object: Any? = nil, from sender: Any? = nil, completion: @escaping Completion) {
         guard let config = configuration as? StubServiceConfiguration else { preconditionFailure("Configuration not set.") }
-        guard let request = config.urlRequest(for: action, with: object) else {
+        guard let requestInfo = configuration.urlRequest(for: action, with: object), let request = requestInfo.request else {
             print("Unable to initiate request for action '\(action)' with object '\(String(describing: object))'"); return
         }
         beforeAction(action, request: request)

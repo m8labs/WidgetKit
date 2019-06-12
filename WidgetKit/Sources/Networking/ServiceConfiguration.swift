@@ -82,11 +82,7 @@ public protocol ServiceConfigurationProtocol {
     
     func clearPolicy(for action: String) -> ClearPolicy
     
-    func setRequestModifier(_ closure: @escaping ((String, inout URLRequest) -> Void))
-    
-    func setRequestComposer(_ closure: @escaping ((String, HTTPMethod, String, Parameters?, HTTPHeaders?) -> URLRequest?))
-    
-    func urlRequest(for action: String, with object: Any?) -> URLRequest?
+    func urlRequest(for action: String, with object: Any?) -> (request: URLRequest?, body: [String: Any]?)?
     
     func uploadRequest(for action: String, with object: Any?) -> URLRequest?
 }
@@ -98,10 +94,6 @@ open class ServiceConfiguration {
     private var dateTransformers: [String: [String: Any]]? {
         return configDict?.value(forKeyPath: "options.transformers.date") as? [String: [String: Any]]
     }
-    
-    private var requestModifier: ((String, inout URLRequest) -> Void)?
-    
-    private var requestComposer: ((String, HTTPMethod, String, Parameters?, HTTPHeaders?) -> URLRequest?)?
     
     private func setDateTransformers() {
         let style: (String?) -> DateFormatter.Style = { string in
@@ -260,46 +252,25 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
         return p
     }
     
-    public func setRequestComposer(_ closure: @escaping ((String, HTTPMethod, String, Parameters?, HTTPHeaders?) -> URLRequest?)) {
-        requestComposer = closure
-    }
-    
-    public func setRequestModifier(_ closure: @escaping ((String, inout URLRequest) -> Void)) {
-        requestModifier = closure
-    }
-    
-    public func urlRequest(for action: String, with object: Any?) -> URLRequest? {
-        var request: URLRequest? = nil
-        if var url = self.url(for: action) {
-            if let object = object as? NSObject {
-                url = String(format: url, with: object, pattern: String.keyPathPattern)
-            }
-            url = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "<url>"
-            var parameters = self.parameters(for: action)
-            if let object = object as? NSObject {
-                parameters = parameters?.substitute(object)
-            }
-            if let composer = requestComposer {
-                request = composer(action, httpMethod(for: action), url, parameters, headers(for: action))
-            }
-            if request == nil {
-                do {
-                    request = try URLRequest(url: url, method: httpMethod(for: action), headers: headers(for: action))
-                    switch encoding(for: action) {
-                    case .url:
-                        request = try URLEncoding.httpBody.encode(request!, with: parameters)
-                    case .plist:
-                        request = try PropertyListEncoding.default.encode(request!, with: parameters)
-                    default:
-                        request = try JSONEncoding.default.encode(request!, with: parameters)
-                    }
-                    requestModifier?(action, &request!)
-                } catch {
-                    print(error)
-                }
-            }
+    public func urlRequest(for action: String, with object: Any?) -> (request: URLRequest?, body: [String: Any]?)? {
+        guard var url = self.url(for: action) else {
+            return nil
         }
-        return request
+        if let object = object as? NSObject {
+            url = String(format: url, with: object, pattern: String.keyPathPattern)
+        }
+        url = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "<url>"
+        var parameters = self.parameters(for: action)
+        if let object = object as? NSObject {
+            parameters = parameters?.substitute(object)
+        }
+        var request: URLRequest? = nil
+        do {
+            request = try URLRequest(url: url, method: httpMethod(for: action), headers: headers(for: action))
+        } catch {
+            print(error)
+        }
+        return (request: request, body: parameters)
     }
     
     public func uploadRequest(for action: String, with object: Any?) -> URLRequest? {
@@ -311,16 +282,10 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
             if let escapedUrl = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
                 url = escapedUrl
             }
-            if let composer = requestComposer {
-                request = composer(action, httpMethod(for: action), url, nil, headers(for: action))
-            }
-            if request == nil {
-                do {
-                    request = try URLRequest(url: url, method: httpMethod(for: action), headers: headers(for: action))
-                    requestModifier?(action, &request!)
-                } catch {
-                    print(error)
-                }
+            do {
+                request = try URLRequest(url: url, method: httpMethod(for: action), headers: headers(for: action))
+            } catch {
+                print(error)
             }
         }
         return request

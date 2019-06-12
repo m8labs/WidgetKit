@@ -111,17 +111,49 @@ open class StandardServiceProvider: ServiceProvider {
         return NSError(domain: errorDomain, code: code, userInfo: (json[errorKeyPath] as? [String: Any]) ?? json)
     }
     
+    open func prepareRequest(_ request: URLRequest, body: inout [String: Any]?, for action: String, from sender: Any?) -> URLRequest {
+        return request
+    }
+    
+    open func prepareRequest(_ request: URLRequest, body: MultipartFormData, for action: String, from sender: Any?) -> URLRequest {
+        return request
+    }
+    
+    open func prepareResponse(_ response: Any?, for action: String, from sender: Any?) -> Any? {
+        return response
+    }
+    
     func request(for action: String, with object: Any? = nil, from sender: Any? = nil, completion: @escaping Completion) {
         if configuration.isUpload(for: action) {
-            upload(for: action, with: object, from: sender, completion: completion); return
+            return upload(for: action, with: object, from: sender, completion: completion)
         }
-        guard let request = configuration.urlRequest(for: action, with: object) else {
-            print("Unable to initiate request for action '\(action)' with object '\(String(describing: object))'"); return
+        guard let requestInfo = configuration.urlRequest(for: action, with: object), var rawRequest = requestInfo.request else {
+            return print("Unable to initiate request for action '\(action)' with object '\(String(describing: object))'")
         }
-        beforeAction(action, request: request)
+        var body = requestInfo.body
+        rawRequest = prepareRequest(rawRequest, body: &body, for: action, from: sender)
+        var request: URLRequest? = rawRequest
+        if let parameters = body {
+            do {
+                switch configuration.encoding(for: action) {
+                case .url:
+                    request = try URLEncoding.httpBody.encode(rawRequest, with: parameters)
+                case .plist:
+                    request = try PropertyListEncoding.default.encode(rawRequest, with: parameters)
+                default:
+                    request = try JSONEncoding.default.encode(rawRequest, with: parameters)
+                }
+            } catch {
+                print(error)
+            }
+        }
+        guard request != nil else {
+            return print("Unable to compose request for action '\(action)' with object '\(String(describing: object))'")
+        }
+        beforeAction(action, request: request!)
         action.notification.onStart.post(object: sender)
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
-        requests[requestID] = SessionManager.default.request(request)
+        requests[requestID] = SessionManager.default.request(request!)
             .validate { request, response, data in
                 self.requests[requestID] = nil
                 self.afterAction(action, request: request, response: response, data: data)
@@ -194,13 +226,18 @@ open class StandardServiceProvider: ServiceProvider {
                     action.notification.onReady.post(object: sender, userInfo: [Notification.objectKey: arr])
                     let clearOld = config.clearPolicy(for: action) == .after
                     let setters = config.setters(for: action)
-                    self.persistentContainer.objects(withEntityName: resultType, fromJSONArray: arr, clearOld: clearOld, setters: setters) { objects, error in
-                        if error != nil {
-                            self.handleResponse(action.notification.onError, sender: sender, result: nil, error: error, completion: completion)
-                        } else {
-                            self.handleResponse(action.notification.onSuccess, sender: sender, result: objects, error: nil, completion: completion)
-                            if let nextAction = config.nextAction(for: action) {
-                                self.performAction(nextAction, with: object, from: sender)
+                    asyncGlobal {
+                        let arr_ = self.prepareResponse(arr, for: action, from: sender) as! [JSONDictionary]
+                        asyncMain {
+                            self.persistentContainer.objects(withEntityName: resultType, fromJSONArray: arr_, clearOld: clearOld, setters: setters) { objects, error in
+                                if error != nil {
+                                    self.handleResponse(action.notification.onError, sender: sender, result: nil, error: error, completion: completion)
+                                } else {
+                                    self.handleResponse(action.notification.onSuccess, sender: sender, result: objects, error: nil, completion: completion)
+                                    if let nextAction = config.nextAction(for: action) {
+                                        self.performAction(nextAction, with: object, from: sender)
+                                    }
+                                }
                             }
                         }
                     }
@@ -213,13 +250,18 @@ open class StandardServiceProvider: ServiceProvider {
                     action.notification.onReady.post(object: sender, userInfo: [Notification.objectKey: dict])
                     let clearOld = config.clearPolicy(for: action) == .after
                     let setters = config.setters(for: action)
-                    self.persistentContainer.object(withEntityName: resultType, fromJSONDictionary: dict, clearOld: clearOld, setters: setters) { object, error in
-                        if error != nil {
-                            self.handleResponse(action.notification.onError, sender: sender, result: nil, error: error, completion: completion)
-                        } else {
-                            self.handleResponse(action.notification.onSuccess, sender: sender, result: object, error: nil, completion: completion)
-                            if let nextAction = config.nextAction(for: action) {
-                                self.performAction(nextAction, with: object, from: sender)
+                    asyncGlobal {
+                        let dict_ = self.prepareResponse(dict, for: action, from: sender) as! JSONDictionary
+                        asyncMain {
+                            self.persistentContainer.object(withEntityName: resultType, fromJSONDictionary: dict_, clearOld: clearOld, setters: setters) { object, error in
+                                if error != nil {
+                                    self.handleResponse(action.notification.onError, sender: sender, result: nil, error: error, completion: completion)
+                                } else {
+                                    self.handleResponse(action.notification.onSuccess, sender: sender, result: object, error: nil, completion: completion)
+                                    if let nextAction = config.nextAction(for: action) {
+                                        self.performAction(nextAction, with: object, from: sender)
+                                    }
+                                }
                             }
                         }
                     }
@@ -231,7 +273,7 @@ open class StandardServiceProvider: ServiceProvider {
         }
     }
     
-    private func setupUploadRequest(_ uploadRequest: UploadRequest, requestID: String, action: String, from sender: Any?, completion: @escaping Completion) {
+    private func performUploadRequest(_ uploadRequest: UploadRequest, requestID: String, action: String, from sender: Any?, completion: @escaping Completion) {
         requests[requestID] = uploadRequest
         uploadRequest
             .uploadProgress { progress in
@@ -257,9 +299,9 @@ open class StandardServiceProvider: ServiceProvider {
     }
     
     func upload(for action: String, with object: Any?, from sender: Any? = nil, completion: @escaping Completion) {
-        guard let config = configuration else { print("Configuration not set."); return }
+        guard let config = configuration else { return print("Configuration not set.") }
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
-        guard let request = config.uploadRequest(for: action, with: object) else { return }
+        guard var request = config.uploadRequest(for: action, with: object) else { return print("Can't configure request.") }
         if let params = config.multipartParams(for: action) {
             beforeAction(action, request: request)
             action.notification.onStart.post(object: sender)
@@ -275,11 +317,12 @@ open class StandardServiceProvider: ServiceProvider {
                         }
                     }
                 }
+                request = self.prepareRequest(request, body: formData, for: action, from: sender)
             }
             SessionManager.default.upload(multipartFormData: fillData, with: request, encodingCompletion: { encodingResult in
                 switch encodingResult {
                 case .success(let uploadRequest, _, _):
-                    self.setupUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
+                    self.performUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
                 case .failure(let error):
                     print(error)
                     completion(nil, error)
@@ -288,13 +331,13 @@ open class StandardServiceProvider: ServiceProvider {
         } else {
             if let image = object as? UIImage, let data = UIImageJPEGRepresentation(image, UIImage.defaultJPEGCompression) {
                 let uploadRequest = SessionManager.default.upload(data, with: request)
-                setupUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
+                performUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
             } else if let data = object as? Data {
                 let uploadRequest = SessionManager.default.upload(data, with: request)
-                setupUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
+                performUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
             } else if let fileUrl = object as? URL {
                 let uploadRequest = SessionManager.default.upload(fileUrl, with: request)
-                setupUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
+                performUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
             } else {
                 print("Couldn't create upload request for \(action).")
             }

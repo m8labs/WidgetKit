@@ -40,7 +40,7 @@ public func asyncMain(_ block: @escaping () -> Swift.Void) {
 }
 
 public func asyncGlobal(_ block: @escaping () -> Swift.Void) {
-    DispatchQueue.global().async {
+    DispatchQueue.global(qos: .utility).async {
         block()
     }
 }

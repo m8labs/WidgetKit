@@ -131,6 +131,32 @@ public extension NSPersistentContainer {
         }
     }
     
+    func createObject(ofType entityType: NSManagedObject.Type,
+                setters: [String: Any?] = [:],
+                completion: @escaping (NSManagedObject?, Error?)->Void) {
+        enqueueBackgroundTask() { context in
+            do {
+                let object = NSEntityDescription.insertNewObject(forEntityName: "\(entityType)", into: context)
+                setters.forEach { key, value in
+                    if value is NSManagedObjectID {
+                        let relationship = context.object(with: value as! NSManagedObjectID)
+                        object.setValue(relationship, forKey: key)
+                    } else {
+                        object.setValue(value, forKey: key)
+                    }
+                }
+                try context.save()
+                let objectID = object.objectID
+                self.viewContext.perform {
+                    let newObject = self.viewContext.object(with: objectID)
+                    completion(newObject, nil)
+                }
+            } catch {
+                self.viewContext.perform { completion(nil, error) }
+            }
+        }
+    }
+    
     public func clear(entities: [NSManagedObject.Type], completion: Completion? = nil) {
         let entityNames = entities.map { "\($0)" }
         clear(entityNames: entityNames, completion: completion)

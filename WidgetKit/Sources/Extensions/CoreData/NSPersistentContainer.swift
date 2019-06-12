@@ -41,9 +41,9 @@ public extension NSPersistentContainer {
         return containerForModel(model, identifier: "inMemory", type: NSInMemoryStoreType)
     }()
     
-    public static func containerForModel(_ model: NSManagedObjectModel,
-                                         identifier: String = "Default",
-                                         type: String = NSSQLiteStoreType) -> NSPersistentContainer {
+    static func containerForModel(_ model: NSManagedObjectModel,
+                                  identifier: String = "Default",
+                                  type: String = NSSQLiteStoreType) -> NSPersistentContainer {
         let container = NSPersistentContainer(name: identifier, managedObjectModel: model)
         let defaultURL = NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("\(identifier).sqlite")
         let description = NSPersistentStoreDescription(url: defaultURL)
@@ -75,11 +75,11 @@ public extension NSPersistentContainer {
 
 public extension NSPersistentContainer {
     
-    public func objects(withEntityName name: String,
-                        fromJSONArray array: JSONArray,
-                        clearOld: Bool = false,
-                        setters: [String: Any] = [:],
-                        completion: @escaping ([NSManagedObject]?, Error?)->Void) {
+    func objects(withEntityName name: String,
+                 fromJSONArray array: JSONArray,
+                 clearOld: Bool = false,
+                 setters: [String: Any] = [:],
+                 completion: @escaping ([NSManagedObject]?, Error?)->Void) {
         enqueueBackgroundTask { context in
             if clearOld {
                 NSManagedObject.clear(entityName: name, context: context)
@@ -105,11 +105,11 @@ public extension NSPersistentContainer {
         }
     }
     
-    public func object(withEntityName name: String,
-                       fromJSONDictionary dictionary: JSONDictionary,
-                       clearOld: Bool = false,
-                       setters: [String: Any] = [:],
-                       completion: @escaping (NSManagedObject?, Error?)->Void) {
+    func object(withEntityName name: String,
+                fromJSONDictionary dictionary: JSONDictionary,
+                clearOld: Bool = false,
+                setters: [String: Any] = [:],
+                completion: @escaping (NSManagedObject?, Error?)->Void) {
         enqueueBackgroundTask() { context in
             if clearOld {
                 NSManagedObject.clear(entityName: name, context: context)
@@ -157,12 +157,12 @@ public extension NSPersistentContainer {
         }
     }
     
-    public func clear(entities: [NSManagedObject.Type], completion: Completion? = nil) {
+    func clear(entities: [NSManagedObject.Type], completion: Completion? = nil) {
         let entityNames = entities.map { "\($0)" }
         clear(entityNames: entityNames, completion: completion)
     }
     
-    public func clear(entityNames: [String]? = nil, completion: Completion? = nil) {
+    func clear(entityNames: [String]? = nil, completion: Completion? = nil) {
         let entityNames = (entityNames?.count ?? 0) > 0 ? entityNames! : managedObjectModel.entities.map { $0.name! }
         enqueueBackgroundTask() { context in
             for entityName in entityNames {

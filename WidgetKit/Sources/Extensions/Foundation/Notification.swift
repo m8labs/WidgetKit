@@ -55,21 +55,21 @@ extension Notification.Name: ExpressibleByStringLiteral {
 public extension Notification.Name {
     
     @discardableResult
-    public func addObserver(object: Any? = nil, _ block: @escaping (Notification) -> Swift.Void) -> Any {
+    func addObserver(object: Any? = nil, _ block: @escaping (Notification) -> Swift.Void) -> Any {
         return ObserverWrapper(observer: NotificationCenter.default.addObserver(forName: self, object: object, queue: OperationQueue.main, using: block),
                                name: self.rawValue)
     }
     
     @discardableResult
-    public func subscribe(to object: Any? = nil, _ block: @escaping (Notification) -> Swift.Void) -> Any {
+    func subscribe(to object: Any? = nil, _ block: @escaping (Notification) -> Swift.Void) -> Any {
         return addObserver(object: object, block)
     }
     
-    public func post(object: Any? = nil, error: Error?) {
+    func post(object: Any? = nil, error: Error?) {
         NotificationCenter.default.post(name: self, object: object, userInfo: error != nil ? [Notification.errorKey: error!] : nil)
     }
     
-    public func post(object: Any? = nil, userInfo: [String: Any]? = nil) {
+    func post(object: Any? = nil, userInfo: [String: Any]? = nil) {
         NotificationCenter.default.post(name: self, object: object, userInfo: userInfo)
     }
 }
@@ -115,7 +115,7 @@ public extension Notification {
     static let errorKey = "error"
     static let objectKey = "object"
     
-    public var errorFromUserInfo: Error? {
+    var errorFromUserInfo: Error? {
         return userInfo?[Notification.errorKey] as? Error
     }
     
@@ -126,7 +126,7 @@ public extension Notification {
 
 public extension String {
     
-    public var notification: Notification.Name {
+    var notification: Notification.Name {
         return Notification.Name(self)
     }
 }

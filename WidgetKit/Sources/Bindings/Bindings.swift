@@ -304,7 +304,7 @@ public extension NSObject {
         static var ObjectAssistantKey: String?
     }
     
-    @objc public var wx: ObjectAssistant {
+    @objc var wx: ObjectAssistant {
         var wx = objc_getAssociatedObject(self, &AssociatedKeys.ObjectAssistantKey) as? ObjectAssistant
         if wx == nil {
             wx = ObjectAssistant(for: self)

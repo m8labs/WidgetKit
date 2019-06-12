@@ -25,17 +25,17 @@ import Groot
 
 public extension NSManagedObject {
     
-    public class func create<T: NSManagedObject>(context: NSManagedObjectContext = NSManagedObjectContext.main) -> T {
+    class func create<T: NSManagedObject>(context: NSManagedObjectContext = NSManagedObjectContext.main) -> T {
         let entityName = "\(self)"
         let object = NSEntityDescription.insertNewObject(forEntityName: entityName, into: context)
         return object as! T
     }
     
-    public class func objects(of entityName: String,
-                              with predicate: NSPredicate? = nil,
-                              sortByFields: [String]? = nil,
-                              sortAscending: Bool = true,
-                              context: NSManagedObjectContext = NSManagedObjectContext.main) -> [NSManagedObject] {
+    class func objects(of entityName: String,
+                       with predicate: NSPredicate? = nil,
+                       sortByFields: [String]? = nil,
+                       sortAscending: Bool = true,
+                       context: NSManagedObjectContext = NSManagedObjectContext.main) -> [NSManagedObject] {
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>()
         fetchRequest.entity = NSEntityDescription.entity(forEntityName: entityName, in: context)
         fetchRequest.predicate = predicate
@@ -50,26 +50,26 @@ public extension NSManagedObject {
         return objects ?? []
     }
     
-    public class func objects<T: NSManagedObject>(with predicate: NSPredicate? = nil,
-                                                  sortByFields: [String]? = nil,
-                                                  sortAscending: Bool = true,
-                                                  context: NSManagedObjectContext = NSManagedObjectContext.main) -> [T] {
+    class func objects<T: NSManagedObject>(with predicate: NSPredicate? = nil,
+                                           sortByFields: [String]? = nil,
+                                           sortAscending: Bool = true,
+                                           context: NSManagedObjectContext = NSManagedObjectContext.main) -> [T] {
         let entityName = "\(self)"
         return objects(of: entityName, with: predicate, sortByFields: sortByFields, sortAscending: sortAscending, context: context) as! [T]
     }
     
-    public class func all<T: NSManagedObject>(context: NSManagedObjectContext = NSManagedObjectContext.main) -> [T] {
+    class func all<T: NSManagedObject>(context: NSManagedObjectContext = NSManagedObjectContext.main) -> [T] {
         return objects(context: context) as! [T]
     }
     
-    public class func clear(entityName: String, context: NSManagedObjectContext) {
+    class func clear(entityName: String, context: NSManagedObjectContext) {
         let objects = self.objects(of: entityName, context: context)
         for object in objects {
             context.delete(object)
         }
     }
     
-    public func delete() {
+    func delete() {
         managedObjectContext?.delete(self)
         do {
             try managedObjectContext?.save()
@@ -80,9 +80,9 @@ public extension NSManagedObject {
 }
 
 @objc
-extension NSManagedObject {
+public extension NSManagedObject {
     
-    public override var objectId: String {
+    override var objectId: String {
         if let attrName = entity.userInfo?["identityAttribute"] as? String {
             if let objectId = value(forKey: attrName) as? String {
                 return objectId
@@ -91,7 +91,7 @@ extension NSManagedObject {
         return super.objectId
     }
     
-    public var owner: NSManagedObject? {
+    var owner: NSManagedObject? {
         if let relationshipName = entity.userInfo?["ownerRelationship"] as? String {
             if let owner = value(forKey: relationshipName) as? NSManagedObject {
                 return owner
@@ -100,7 +100,7 @@ extension NSManagedObject {
         return nil
     }
     
-    public var isMine: Bool {
+    var isMine: Bool {
         if let owner = owner, let isOwnerEntity = owner.entity.userInfo?["isOwnerEntity"] as? String {
             return NSString(string: isOwnerEntity).boolValue
         }

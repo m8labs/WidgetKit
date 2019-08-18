@@ -76,19 +76,19 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
             },
             action.notification.onReady.subscribe(to: owner) { [weak self] n in
                 if let this = self {
-                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: nil, sender: this)
+                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.valueFromUserInfo, error: nil, sender: this)
                     this.statusValue = .isReady
                     this.viewController?.refresh(elements: this.elements)
-                    this.owner?.statusChanged(this, result: n.objectFromUserInfo, error: nil)
+                    this.owner?.statusChanged(this, result: n.valueFromUserInfo, error: nil)
                 }
             },
             action.notification.onSuccess.subscribe(to: owner) { [weak self] n in
                 if let this = self {
-                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: nil, sender: this)
+                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.valueFromUserInfo, error: nil, sender: this)
                     this.statusValue = .isSuccess
                     this.viewController?.refresh(elements: this.elements)
-                    this.owner?.statusChanged(this, result: n.objectFromUserInfo, error: nil)
-                    if let segue = this.successSegue, let masterObject = n.objectFromUserInfo as? NSObject {
+                    this.owner?.statusChanged(this, result: n.valueFromUserInfo, error: nil)
+                    if let segue = this.successSegue, let masterObject = n.valueFromUserInfo as? NSObject {
                         if let keyPath = this.successSegueKeyPath {
                             if let object = masterObject.value(forKeyPath: keyPath) {
                                 after(this.successSegueDelay) {
@@ -107,7 +107,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
             },
             action.notification.onError.subscribe(to: owner) { [weak self] n in
                 if let this = self {
-                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.objectFromUserInfo, error: n.errorFromUserInfo, sender: this)
+                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.valueFromUserInfo, error: n.errorFromUserInfo, sender: this)
                     this.statusValue = .isFailure
                     this.viewController?.refresh(elements: this.elements)
                     if let error = n.errorFromUserInfo {

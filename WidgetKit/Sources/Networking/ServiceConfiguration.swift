@@ -83,8 +83,6 @@ public protocol ServiceConfigurationProtocol {
     func clearPolicy(for action: String) -> ClearPolicy
     
     func urlRequest(for action: String, with object: Any?) -> (request: URLRequest?, body: [String: Any]?)?
-    
-    func uploadRequest(for action: String, with object: Any?) -> URLRequest?
 }
 
 open class ServiceConfiguration {
@@ -271,23 +269,5 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
             print(error)
         }
         return (request: request, body: parameters)
-    }
-    
-    public func uploadRequest(for action: String, with object: Any?) -> URLRequest? {
-        var request: URLRequest? = nil
-        if isUpload(for: action), var url = self.url(for: action) {
-            if let object = object as? NSObject {
-                url = String(format: url, with: object, pattern: String.keyPattern)
-            }
-            if let escapedUrl = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
-                url = escapedUrl
-            }
-            do {
-                request = try URLRequest(url: url, method: httpMethod(for: action), headers: headers(for: action))
-            } catch {
-                print(error)
-            }
-        }
-        return request
     }
 }

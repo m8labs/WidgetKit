@@ -113,14 +113,19 @@ extension Notification.Name: NetworkRequestStatusProtocol {
 public extension Notification {
     
     static let errorKey = "error"
-    static let objectKey = "object"
+    static let valueKey = "value"
+    static let argsKey = "args"
     
     var errorFromUserInfo: Error? {
         return userInfo?[Notification.errorKey] as? Error
     }
     
-    public var objectFromUserInfo: Any? {
-        return userInfo?[Notification.objectKey]
+    var valueFromUserInfo: Any? {
+        return userInfo?[Notification.valueKey]
+    }
+    
+    var argsFromUserInfo: ActionArgs? {
+        return userInfo?[Notification.argsKey] as? ActionArgs
     }
 }
 

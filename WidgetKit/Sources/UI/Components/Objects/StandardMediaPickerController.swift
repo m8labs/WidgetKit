@@ -26,222 +26,79 @@ import Photos
 import Alamofire
 import MobileCoreServices
 
-public class MediaUploadFormView: FormDisplayView {
+public class PHAssetView: UIImageView {
     
-    @IBOutlet var uploadContainer: UploadContainerView! {
-        didSet {
-            mandatoryFields = [uploadContainer]
+    @objc public var largestSide: CGFloat = 0
+    
+    @IBOutlet var progressView: UIProgressView?
+    
+    private var contentPixelWidth: Int {
+        if let image = self.image {
+            return Int(image.size.width * image.scale)
+        } else if let asset = self.asset {
+            return asset.pixelWidth
         }
+        return 0
     }
     
-    @IBOutlet var progressBar: UIView?
-    
-    var resultInfo: Any?
-    
-    @objc public var resultInfoValueKey: String?
-    
-    public var result: Any? {
-        guard let resultInfo = resultInfo as? NSObject, let resultInfoValueKey = resultInfoValueKey, uploadContainer.hasMedia else { return nil }
-        return resultInfo.value(forKeyPath: resultInfoValueKey)
-    }
-    
-    @objc public var autoUpload = true
-    
-    var progress: Double = 0 {
-        didSet {
-            progressBar?.isHidden = progress == 1.0 || progress == 0
-            progressBar?.wx_value = progress
+    private var contentPixelHeight: Int {
+        if let image = self.image {
+            return Int(image.size.height * image.scale)
+        } else if let asset = self.asset {
+            return asset.pixelHeight
         }
+        return 0
     }
     
-    public override func setupObservers() {
-        let observersForAction: ((String) -> [Any]) = { action in
-            return [
-                action.notification.onProgress.subscribe(to: self) { [weak self] n in
-                    if let progress = n.objectFromUserInfo as? Progress {
-                        self?.progress = progress.fractionCompleted
-                    }
-                },
-                action.notification.onReady.subscribe(to: self) { [weak self] n in
-                    self?.progress = 1.0
-                    self?.actionController.cancelButton?.isHidden = true
-                    self?.resultInfo = n.objectFromUserInfo
-                },
-                action.notification.onError.subscribe(to: self) { [weak self] n in
-                    self?.progress = 0
-                    self?.actionController.cancelButton?.isHidden = true
-                }
-            ]
-        }
-        // We can't know beforehand what action will be chosen, so we set both
-        if let action = actionController.actionName {
-            observers.append(contentsOf: observersForAction(action))
-        }
-        if let elseAction = actionController.elseActionName {
-            observers.append(contentsOf: observersForAction(elseAction))
-        }
-    }
-    
-    public func beginUpload() {
-        uploadContainer.prepare { [weak self] in
-            self?.actionController.cancelButton?.isHidden = false
-            self?.actionController.sender = self
-            self?.actionController.performAction()
-        }
-    }
-    
-    public func reset() {
-        if uploadContainer.pickerResult != nil {
-            actionController.cancelAction()
-        }
-        progress = 0
-        uploadContainer.pickerResult = nil
-        actionController.viewController.configure()
-    }
-    
-    public func shouldBeginUpload(with info: MediaPickerResultInfo) {
-        progress = 0
-        unveilAlpha = 1
-        uploadContainer.pickerResult = info
-        if autoUpload {
-            beginUpload()
-        }
-    }
-    
-    @IBAction func detachAction(_ sender: Any?) {
-        reset()
-        unveilAlpha = 0
-    }
-}
-
-extension MediaUploadFormView {
-    /*
-     Any UIView can have wx_fieldValue, including FormDisplayView, because forms can be nested
-     This form field value is not for this form, but for outside form.
-     */
-    public override var wx_fieldValue: Any? {
-        get { return result }
-        set { }
-    }
-}
-
-public class UploadContainerView: UIView {
-    
-    @IBOutlet var previewView: UIView?
-    @IBOutlet var prepareIndicator: UIView?
-    
-    func requestPreview() {
-        guard let asset = asset, let previewView = previewView else { return }
-        prepareIndicator?.wx_value = true
-        let options = PHImageRequestOptions()
-        options.isNetworkAccessAllowed = true
-        PHImageManager.default().requestImage(for: asset,
-                                              targetSize: previewView.bounds.size,
-                                              contentMode: .aspectFill,
-                                              options: options)
-        { [weak self] image, info in
-            self?.preview = image
-            self?.prepareIndicator?.wx_value = false
-        }
-    }
-    
-    var pickerResult: MediaPickerResultInfo? {
-        didSet {
-            objectToUpload = nil
-            guard let pickerResult = pickerResult else {
-                image = nil
-                asset = nil
-                fileUrl = nil
-                return
+    private var previewSize: CGSize {
+        let w = contentPixelWidth
+        let h = contentPixelHeight
+        if largestSide > 0, w > 0, h > 0 {
+            let maxS = max(w, h)
+            let minS = min(w, h)
+            let f = CGFloat(minS) / CGFloat(maxS) // f <= 1.0
+            if w > h {
+                return CGSize(width: largestSide, height: largestSide * f) // horizontal image
+            } else {
+                return CGSize(width: largestSide * f, height: largestSide) // vertical image
             }
-            if let image = pickerResult.editedImage {
-                self.image = image
-            } else if let image = pickerResult.originalImage {
-                self.image = image
-            }
-            if pickerResult.isMovie {
-                if #available(iOS 11.0, *) {
-                    if let asset = pickerResult.asset {
-                        self.asset = asset
-                    }
-                }
-                if let fileUrl = pickerResult.fileUrl {
-                    self.fileUrl = fileUrl
-                }
+        }
+        return CGSize(width: self.bounds.size.width * UIScreen.main.scale, height: self.bounds.size.height * UIScreen.main.scale)
+    }
+    
+    @objc public var asset: PHAsset? {
+        didSet {
+            guard let asset = self.asset else { return }
+            StandardMediaPickerController.requestImage(for: asset, targetSize: previewSize, progress: { [weak self] progress in
+                self?.progressView?.progress = progress
+            }) { [weak self] image, error in
+                guard asset == self?.asset else { return }
+                self?.image = image
             }
         }
     }
     
-    fileprivate var objectToUpload: Any?
-    
-    func prepare(with finish: @escaping () -> Void) {
-        if let fileUrl = fileUrl {
-            objectToUpload = fileUrl
-            finish()
-        } else if let image = image {
-            prepareIndicator?.wx_value = true
-            let compression = self.imageCompression
-            asyncGlobal {
-                let data = UIImageJPEGRepresentation(image, compression)
-                async { [weak self] in
-                    self?.objectToUpload = data
-                    self?.prepareIndicator?.wx_value = false
-                    finish()
-                }
-            }
+    override public var intrinsicContentSize: CGSize {
+        if image != nil || asset != nil {
+            let size = previewSize
+            return CGSize(width: size.width / UIScreen.main.scale, height: size.height / UIScreen.main.scale)
         }
-    }
-    
-    public var preview: Any? {
-        get {
-            return previewView?.wx_value
-        }
-        set {
-            previewView?.wx_value = newValue
-        }
-    }
-    
-    public var image: UIImage? {
-        didSet {
-            preview = image
-        }
-    }
-    
-    public var asset: PHAsset? {
-        didSet {
-            if asset != nil {
-                requestPreview()
-            }
-        }
-    }
-    
-    public var fileUrl: URL?
-    
-    @objc public var isMovie: Bool {
-        return pickerResult?.isMovie ?? false
-    }
-    
-    @objc public var hasMedia: Bool {
-        return pickerResult != nil
-    }
-    
-    @objc public var imageCompression = UIImage.defaultJPEGCompression
-}
-
-extension UploadContainerView {
-    
-    public override var wx_fieldValue: Any? {
-        get { return objectToUpload }
-        set { }
+        return CGSize.zero
     }
 }
 
 public class StandardMediaPickerController: ButtonActionController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
-    @IBOutlet var forms: [MediaUploadFormView]?
+    @IBOutlet public weak var imageView: UIImageView?
     
-    @objc public var pickedNumber: Int {
-        return forms?.filter({ $0.uploadContainer.pickerResult != nil }).count ?? 0
+    @objc public private(set) var pickerResult: MediaPickerResult? {
+        didSet {
+            if let assetView = imageView as? PHAssetView {
+                assetView.asset = pickerResult?.asset
+            } else {
+                imageView?.image = pickerResult?.currentImage
+            }
+        }
     }
     
     @objc public var showOptions = true
@@ -254,41 +111,162 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     
     @objc public var cancelOptionTitle = NSLocalizedString("Cancel", comment: "")
     
-    public override func performAction(with object: Any? = nil) {
+    public func pick(with sourceType: UIImagePickerController.SourceType) {
         let picker = UIImagePickerController()
         picker.delegate = self
-        let pick: (UIImagePickerControllerSourceType) -> Void = { sourceType in
-            picker.sourceType = sourceType
-            if !self.imagesOnly {
-                picker.mediaTypes = UIImagePickerController.availableMediaTypes(for: .photoLibrary) ?? []
-            }
-            self.viewController.present(picker, animated: true)
+        picker.sourceType = sourceType
+        if !imagesOnly {
+            picker.mediaTypes = UIImagePickerController.availableMediaTypes(for: .photoLibrary) ?? []
         }
-        if showOptions && UIImagePickerController.isSourceTypeAvailable(.camera) {
-            viewController.showActionSheet(message: nil, options: [
-                (cameraOptionTitle,  { pick(.camera) }),
-                (libraryOptionTitle, { pick(.photoLibrary) }),
-                (cancelOptionTitle,  nil)])
+        viewController.present(picker, animated: true)
+    }
+    
+    public override func performAction(with object: Any? = nil) {
+        let perform = {
+            if self.showOptions && UIImagePickerController.isSourceTypeAvailable(.camera) {
+                self.viewController.showActionSheet(message: nil, options: [
+                    (self.cameraOptionTitle,  { [weak self] in self?.pick(with: .camera) }),
+                    (self.libraryOptionTitle, { [weak self] in self?.pick(with: .photoLibrary) }),
+                    (self.cancelOptionTitle,  nil)])
+            } else {
+                self.pick(with: .photoLibrary)
+            }
+        }
+        let showError = {
+            self.viewController.showAlert(message: NSLocalizedString("Photo access was not granted by the user.", comment: ""))
+        }
+        if PHPhotoLibrary.authorizationStatus() == .authorized {
+            perform()
         } else {
-            pick(.photoLibrary)
+            PHPhotoLibrary.requestAuthorization { status in
+                guard status == .authorized else { return showError() }
+                perform()
+            }
         }
     }
     
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String: Any]) {
-        guard let forms = self.forms else { return print("Empty `forms` array.") }
-        if forms.count == 1 { // single form - just reupload
-            let form = forms.first!
-            form.reset()
-            form.shouldBeginUpload(with: MediaPickerResultInfo(info: info))
-            picker.dismiss(animated: true)
-        } else if let form = forms.filter({ $0.uploadContainer.pickerResult == nil }).first { // multiple forms - fulfill first empty
-            form.shouldBeginUpload(with: MediaPickerResultInfo(info: info))
-            picker.dismiss(animated: true)
+        pickerResult = MediaPickerResult(info: info)
+        picker.dismiss(animated: true)
+    }
+    
+    public func resetSelection() {
+        pickerResult = nil
+    }
+}
+
+public extension StandardMediaPickerController {
+    
+    static func requestImage(for asset: PHAsset, targetSize: CGSize, progress: @escaping (Float)->Void, completion: @escaping (UIImage?, Error?)->Void) {
+        let options = PHImageRequestOptions()
+        options.version = .current
+        options.isNetworkAccessAllowed = true
+        options.progressHandler = { percent, error, _, _ in
+            progress(Float(percent))
+        }
+        PHImageManager.default().requestImage(for: asset, targetSize: targetSize, contentMode: .aspectFill, options: options) { image, info in
+            completion(image, info?[PHImageErrorKey] as? Error)
+        }
+    }
+    
+    static func requestImageData(for asset: PHAsset, targetSize: CGSize?, progress: @escaping (Float)->Void, completion: @escaping (Data?, Error?)->Void) {
+        let options = PHImageRequestOptions()
+        options.version = .current
+        options.isNetworkAccessAllowed = true
+        options.progressHandler = { percent, error, _, _ in
+            progress(Float(percent))
+        }
+        if targetSize != nil {
+            PHImageManager.default().requestImage(for: asset, targetSize: targetSize!, contentMode: .aspectFill, options: options) { image, info in
+                guard let image = image else {
+                    return completion(nil, info?[PHImageErrorKey] as? Error)
+                }
+                asyncGlobal {
+                    let data = UIImageJPEGRepresentation(image, UIImage.defaultJPEGCompression)
+                    asyncMain {
+                        completion(data, nil)
+                    }
+                }
+            }
+        } else {
+            PHImageManager.default().requestImageData(for: asset, options: options) { data, dataUti, orientation, info in
+                guard let data = data else {
+                    return completion(nil, info?[PHImageErrorKey] as? Error)
+                }
+                completion(data, nil)
+            }
+        }
+    }
+    
+    static func requestImageFile(for asset: PHAsset, targetSize: CGSize?, progress: @escaping (Float)->Void, completion: @escaping (URL?, Error?)->Void) {
+        let outputPath = asset.tmpImagePath(with: targetSize != nil ? "\(targetSize!.width)x\(targetSize!.height)" : "original")
+        if FileManager.default.fileExists(atPath: outputPath) {
+            return completion(URL(fileURLWithPath: outputPath), nil)
+        }
+        StandardMediaPickerController.requestImageData(for: asset, targetSize: targetSize, progress: progress) { data, error in
+            guard let data = data else {
+                return completion(nil, error)
+            }
+            asyncGlobal {
+                do {
+                    let url = URL(fileURLWithPath: outputPath)
+                    try data.write(to: url, options: .atomic)
+                    asyncMain {
+                        completion(url, nil)
+                    }
+                } catch {
+                    asyncMain {
+                        completion(nil, error)
+                    }
+                }
+            }
+        }
+    }
+    
+    static func requestVideoFile(for asset: PHAsset, quality: VideoQuality, progress: @escaping (Float)->Void, completion: @escaping (URL?, Error?)->Void) {
+        let outputPath = asset.tmpVideoPath
+        if FileManager.default.fileExists(atPath: outputPath) {
+            return completion(URL(fileURLWithPath: outputPath), nil)
+        }
+        let options = PHVideoRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.progressHandler = { percent, error, _, _ in
+            progress(Float(percent))
+        }
+        PHImageManager.default().requestExportSession(forVideo: asset, options: options, exportPreset: quality.exportPreset) { exportSession, info in
+            guard let session = exportSession else {
+                return completion(nil, info?[PHImageErrorKey] as? Error)
+            }
+            session.outputURL = URL(fileURLWithPath: outputPath)
+            session.outputFileType = .mov
+            session.shouldOptimizeForNetworkUse = true
+            session.exportAsynchronously {
+                completion(session.outputURL, session.error)
+            }
+            asyncGlobal {
+                while session.status == .waiting || session.status == .exporting {
+                    asyncMain {
+                        progress(session.progress)
+                    }
+                    sleep(500)
+                }
+            }
+        }
+    }
+    
+    static func requestMediaFile(for asset: PHAsset, imageSize: CGSize? = nil, videoQuality: VideoQuality = .medium, progress: @escaping (Float)->Void, completion: @escaping (URL?, Error?)->Void) {
+        switch asset.mediaType {
+        case .image:
+            StandardMediaPickerController.requestImageFile(for: asset, targetSize: imageSize, progress: progress, completion: completion)
+        case .video:
+            StandardMediaPickerController.requestVideoFile(for: asset, quality: videoQuality, progress: progress, completion: completion)
+        default:
+            completion(nil, nil)
         }
     }
 }
 
-public class MediaPickerResultInfo {
+public class MediaPickerResult: NSObject {
     
     var info: [String: Any]
     
@@ -296,21 +274,60 @@ public class MediaPickerResultInfo {
         self.info = info
     }
     
-    public var mediaType: CFString { return info[UIImagePickerControllerMediaType] as! CFString }
+    @objc public var mediaType: String { return info[UIImagePickerControllerMediaType] as! String }
     
-    public var originalImage: UIImage? { return info[UIImagePickerControllerOriginalImage] as? UIImage }
+    @objc public var editedImage: UIImage? { return info[UIImagePickerControllerEditedImage] as? UIImage }
     
-    public var editedImage: UIImage? { return info[UIImagePickerControllerEditedImage] as? UIImage }
+    @objc public var originalImage: UIImage? { return info[UIImagePickerControllerOriginalImage] as? UIImage }
+    
+    @objc public var currentImage: UIImage? { return editedImage ?? originalImage }
+    
+    @objc public var asset: PHAsset? {
+        if #available(iOS 11.0, *) {
+            return info[UIImagePickerControllerPHAsset] as? PHAsset
+        } else if let assetUrl = info[UIImagePickerControllerReferenceURL] as? URL {
+            let result = PHAsset.fetchAssets(withALAssetURLs: [assetUrl], options: nil)
+            return result.firstObject
+        }
+        return nil
+    }
     
     @available(iOS 11.0, *)
-    public var asset: PHAsset? { return info[UIImagePickerControllerPHAsset] as? PHAsset }
+    @objc public var imageUrl: URL? { return info[UIImagePickerControllerImageURL] as? URL }
     
-    public var fileUrl: URL? { return info[UIImagePickerControllerMediaURL] as? URL }
+    @objc public var mediaUrl: URL? { return info[UIImagePickerControllerMediaURL] as? URL }
     
-    var isMovie: Bool { return mediaType == kUTTypeMovie }
+    @objc public var isMovie: Bool { return mediaType == String(kUTTypeMovie) }
+}
+
+public enum VideoQuality {
+    
+    case unspecified, low, medium, max
+    
+    var exportPreset: String {
+        switch self {
+        case .low:
+            return AVAssetExportPresetLowQuality
+        case .max:
+            return AVAssetExportPresetHighestQuality
+        default:
+            return AVAssetExportPresetMediumQuality
+        }
+    }
 }
 
 extension UIImage {
     
     public static let defaultJPEGCompression: CGFloat = 0.9
+}
+
+extension PHAsset {
+    
+    var tmpVideoPath: String {
+        return NSTemporaryDirectory() + "tmp\(localIdentifier).mov"
+    }
+    
+    func tmpImagePath(with tag: String) -> String {
+        return NSTemporaryDirectory() + "tmp\(localIdentifier)-\(tag).jpeg"
+    }
 }

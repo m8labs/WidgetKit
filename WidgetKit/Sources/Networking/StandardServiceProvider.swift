@@ -21,7 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import UIKit
 import Groot
 import Alamofire
 
@@ -31,9 +30,9 @@ public typealias Completion = ((_ result: Any?, _ error: Error?) -> Void)
 @objc
 public protocol ServiceProviderProtocol: class {
     
-    func performAction(_ action: String, with object: Any?, from sender: Any?, completion: Completion?)
+    func performAction(_ action: String, with args: ActionArgs?, from sender: Any?, completion: Completion?)
     
-    func cancelRequest(for action: String, from sender: Any?)
+    func cancelRequest(for action: String, with args: ActionArgs?, from sender: Any?)
     
     func serverError(for action: String, code: Int, data: Data?) -> Error?
 }
@@ -98,7 +97,7 @@ open class StandardServiceProvider: ServiceProvider {
         return "\(widget?.identifier ?? bundle.bundleIdentifier!)_\(action)_\(sender?.wx.identifier ?? "0")"
     }
     
-    open func cancelRequest(for action: String, from sender: Any? = nil) {
+    open func cancelRequest(for action: String, with args: ActionArgs?, from sender: Any? = nil) {
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
         let request = requests[requestID] as? Request
         request?.cancel()
@@ -111,11 +110,7 @@ open class StandardServiceProvider: ServiceProvider {
         return NSError(domain: errorDomain, code: code, userInfo: (json[errorKeyPath] as? [String: Any]) ?? json)
     }
     
-    open func prepareRequest(_ request: URLRequest, body: inout [String: Any]?, for action: String, from sender: Any?) -> URLRequest {
-        return request
-    }
-    
-    open func prepareRequest(_ request: URLRequest, body: MultipartFormData, for action: String, from sender: Any?) -> URLRequest {
+    open func prepareRequest(_ request: URLRequest, body: inout [String: Any]?, for action: String, from sender: Any?) -> URLRequest? {
         return request
     }
     
@@ -123,16 +118,15 @@ open class StandardServiceProvider: ServiceProvider {
         return response
     }
     
-    func request(for action: String, with object: Any? = nil, from sender: Any? = nil, completion: @escaping Completion) {
-        if configuration.isUpload(for: action) {
-            return upload(for: action, with: object, from: sender, completion: completion)
+    func request(for action: String, with args: ActionArgs? = nil, from sender: Any? = nil, completion: @escaping Completion) {
+        if let _ = configuration.multipartParams(for: action) {
+            return upload(for: action, with: args, from: sender, completion: completion)
         }
-        guard let requestInfo = configuration.urlRequest(for: action, with: object), var rawRequest = requestInfo.request else {
-            return print("Unable to initiate request for action '\(action)' with object '\(String(describing: object))'")
+        guard let requestInfo = configuration.urlRequest(for: action, with: args), let rawRequest = requestInfo.request else {
+            return print("Unable to initiate request for action '\(action)' with object '\(String(describing: args))'")
         }
         var body = requestInfo.body
-        rawRequest = prepareRequest(rawRequest, body: &body, for: action, from: sender)
-        var request: URLRequest? = rawRequest
+        var request = prepareRequest(rawRequest, body: &body, for: action, from: sender)
         if let parameters = body {
             do {
                 switch configuration.encoding(for: action) {
@@ -148,15 +142,15 @@ open class StandardServiceProvider: ServiceProvider {
             }
         }
         guard request != nil else {
-            return print("Unable to compose request for action '\(action)' with object '\(String(describing: object))'")
+            return print("Unable to compose request for action '\(action)' with object '\(String(describing: args))'")
         }
-        beforeAction(action, request: request!)
+        before(action: action, request: request!)
         action.notification.onStart.post(object: sender)
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
         requests[requestID] = SessionManager.default.request(request!)
             .validate { request, response, data in
                 self.requests[requestID] = nil
-                self.afterAction(action, request: request, response: response, data: data)
+                self.after(action: action, request: request, response: response, data: data)
                 if response.statusCode < 400 {
                     return .success
                 } else if let error = self.serverError(for: action, code: response.statusCode, data: data) {
@@ -177,111 +171,15 @@ open class StandardServiceProvider: ServiceProvider {
             }
     }
     
-    private func handleResponse(_ notification: Notification.Name, sender: Any?, result: Any?, error: Error?, completion: Completion?) {
-        if let error = error {
-            print(error)
-            completion?(nil, error)
-            notification.post(object: sender, userInfo: [Notification.errorKey: error])
-        } else if let objects = result as? [Any] {
-            print("Objects count: \(objects.count)")
-            completion?(objects, nil)
-            notification.post(object: sender, userInfo: [Notification.objectKey: objects])
-        } else if let object = result {
-            print("Object: \(object)")
-            completion?(object, nil)
-            notification.post(object: sender, userInfo: [Notification.objectKey: object])
-        } else {
-            completion?(nil, nil)
-            notification.post(object: sender)
-        }
-    }
-    
-    open func performAction(_ action: String, with object: Any?, from sender: Any?, completion: Completion? = nil) {
-        guard let config = configuration else { preconditionFailure("Configuration not set.") }
-        if config.clearPolicy(for: action) == .before, let resultType = config.resultType(for: action) {
-            persistentContainer.clear(entityNames: [resultType])
-        }
-        request(for: action, with: object, from: sender) { data, error in
-            guard error == nil else {
-                self.handleResponse(action.notification.onError, sender: sender, result: nil, error: error, completion: completion)
-                return
-            }
-            guard let resultType = config.resultType(for: action) else {
-                print("Invalid configuration for action '\(action)'. Result type unknown.")
-                self.handleResponse(action.notification.onReady, sender: sender, result: data, error: nil, completion: completion)
-                return
-            }
-            var result = data
-            if let resultKeyPath = config.resultKeyPath(for: action), resultKeyPath.count > 0 {
-                if let dict = data as? NSDictionary {
-                    result = dict.value(forKeyPath: resultKeyPath)
-                } else {
-                    print("Invalid data for action '\(action)'. Expected json object.")
-                    self.handleResponse(action.notification.onError, sender: sender, result: nil, error: nil, completion: completion)
-                    return
-                }
-            }
-            if config.resultIsArray(for: action) {
-                if let arr = result as? [JSONDictionary] {
-                    action.notification.onReady.post(object: sender, userInfo: [Notification.objectKey: arr])
-                    let clearOld = config.clearPolicy(for: action) == .after
-                    let setters = config.setters(for: action)
-                    asyncGlobal {
-                        let arr_ = self.prepareResponse(arr, for: action, from: sender) as! [JSONDictionary]
-                        asyncMain {
-                            self.persistentContainer.objects(withEntityName: resultType, fromJSONArray: arr_, clearOld: clearOld, setters: setters) { objects, error in
-                                if error != nil {
-                                    self.handleResponse(action.notification.onError, sender: sender, result: nil, error: error, completion: completion)
-                                } else {
-                                    self.handleResponse(action.notification.onSuccess, sender: sender, result: objects, error: nil, completion: completion)
-                                    if let nextAction = config.nextAction(for: action) {
-                                        self.performAction(nextAction, with: object, from: sender)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    print("Invalid data for action '\(action)'. Expected json array.")
-                    self.handleResponse(action.notification.onError, sender: sender, result: nil, error: nil, completion: completion)
-                }
-            } else {
-                if let dict = result as? JSONDictionary {
-                    action.notification.onReady.post(object: sender, userInfo: [Notification.objectKey: dict])
-                    let clearOld = config.clearPolicy(for: action) == .after
-                    let setters = config.setters(for: action)
-                    asyncGlobal {
-                        let dict_ = self.prepareResponse(dict, for: action, from: sender) as! JSONDictionary
-                        asyncMain {
-                            self.persistentContainer.object(withEntityName: resultType, fromJSONDictionary: dict_, clearOld: clearOld, setters: setters) { object, error in
-                                if error != nil {
-                                    self.handleResponse(action.notification.onError, sender: sender, result: nil, error: error, completion: completion)
-                                } else {
-                                    self.handleResponse(action.notification.onSuccess, sender: sender, result: object, error: nil, completion: completion)
-                                    if let nextAction = config.nextAction(for: action) {
-                                        self.performAction(nextAction, with: object, from: sender)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    print("Invalid data for action '\(action)'. Expected json object.")
-                    self.handleResponse(action.notification.onError, sender: sender, result: nil, error: nil, completion: completion)
-                }
-            }
-        }
-    }
-    
-    private func performUploadRequest(_ uploadRequest: UploadRequest, requestID: String, action: String, from sender: Any?, completion: @escaping Completion) {
+    private func performUploadRequest(_ uploadRequest: UploadRequest, requestID: String, action: String, with args: ActionArgs?, from sender: Any?, completion: @escaping Completion) {
         requests[requestID] = uploadRequest
         uploadRequest
             .uploadProgress { progress in
                 print("\(action) progress: \(progress.fractionCompleted)")
-                action.notification.onProgress.post(object: sender, userInfo: [Notification.objectKey: progress])
+                action.notification.onProgress.post(object: sender, userInfo: [Notification.valueKey: progress.fractionCompleted, Notification.argsKey: args!])
             }
             .validate { request, response, data in
-                self.afterAction(action, request: request, response: response, data: data)
+                self.after(action: action, request: request, response: response, data: data)
                 if let error = self.serverError(for: action, code: response.statusCode, data: data) {
                     return .failure(error)
                 }
@@ -298,48 +196,135 @@ open class StandardServiceProvider: ServiceProvider {
         }
     }
     
-    func upload(for action: String, with object: Any?, from sender: Any? = nil, completion: @escaping Completion) {
-        guard let config = configuration else { return print("Configuration not set.") }
+    func upload(for action: String, with args: ActionArgs?, from sender: Any? = nil, completion: @escaping Completion) {
+        guard let params = configuration.multipartParams(for: action) else {
+            return print("Unable to initiate upload request for action '\(action)'. Multipart params requered.")
+        }
+        guard let requestInfo = configuration.urlRequest(for: action, with: args), let rawRequest = requestInfo.request else {
+            return print("Unable to initiate request for action '\(action)' with object '\(String(describing: args))'")
+        }
+        var body = requestInfo.body // shoud be nil for uploads
+        let request = prepareRequest(rawRequest, body: &body, for: action, from: sender)
+        guard request != nil else {
+            return print("Unable to compose request for action '\(action)' with object '\(String(describing: args))'")
+        }
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
-        guard var request = config.uploadRequest(for: action, with: object) else { return print("Can't configure request.") }
-        if let params = config.multipartParams(for: action) {
-            beforeAction(action, request: request)
-            action.notification.onStart.post(object: sender)
-            let fillData: (MultipartFormData) -> Void = { formData in
-                params.forEach { name, keyPath in
-                    if let object = object as? NSObject, let value = object.value(forKeyPath: keyPath as! String) {
-                        if let image = value as? UIImage {
-                            formData.append(UIImageJPEGRepresentation(image, UIImage.defaultJPEGCompression)!, withName: name)
-                        } else if let data = value as? Data {
-                            formData.append(data, withName: name)
-                        } else if let fileUrl = value as? URL {
-                            formData.append(fileUrl, withName: name)
-                        }
+        let fillData: (MultipartFormData) -> Void = { formData in
+            params.forEach { name, keyPath in
+                if let value = args?.value(forKeyPath: keyPath as! String) {
+                    if let data = value as? Data {
+                        formData.append(data, withName: name)
+                    } else if let fileUrl = value as? URL {
+                        formData.append(fileUrl, withName: name)
                     }
                 }
-                request = self.prepareRequest(request, body: formData, for: action, from: sender)
             }
-            SessionManager.default.upload(multipartFormData: fillData, with: request, encodingCompletion: { encodingResult in
-                switch encodingResult {
-                case .success(let uploadRequest, _, _):
-                    self.performUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
-                case .failure(let error):
-                    print(error)
-                    completion(nil, error)
-                }
-            })
+            self.before(action: action, request: request!)
+            action.notification.onStart.post(object: sender)
+        }
+        SessionManager.default.upload(multipartFormData: fillData, with: request!, encodingCompletion: { encodingResult in
+            switch encodingResult {
+            case .success(let uploadRequest, _, _):
+                self.performUploadRequest(uploadRequest, requestID: requestID, action: action, with: args, from: sender, completion: completion)
+            case .failure(let error):
+                print(error)
+                completion(nil, error)
+            }
+        })
+    }
+    
+    private func handleResponse(_ notification: Notification.Name, with args: ActionArgs?, sender: Any?, result: Any?, error: Error?, completion: Completion?) {
+        if let error = error {
+            print(error)
+            completion?(nil, error)
+            notification.post(object: sender, userInfo: args == nil ? [Notification.errorKey: error] : [Notification.errorKey: error, Notification.argsKey: args!])
+        } else if let result = result as? [Any] {
+            print("Objects count: \(result.count)")
+            completion?(result, nil)
+            notification.post(object: sender, userInfo: args == nil ? [Notification.valueKey: result] : [Notification.valueKey: result, Notification.argsKey: args!])
+        } else if let result = result {
+            print("Object: \(result)")
+            completion?(result, nil)
+            notification.post(object: sender, userInfo: args == nil ? [Notification.valueKey: result] : [Notification.valueKey: result, Notification.argsKey: args!])
         } else {
-            if let image = object as? UIImage, let data = UIImageJPEGRepresentation(image, UIImage.defaultJPEGCompression) {
-                let uploadRequest = SessionManager.default.upload(data, with: request)
-                performUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
-            } else if let data = object as? Data {
-                let uploadRequest = SessionManager.default.upload(data, with: request)
-                performUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
-            } else if let fileUrl = object as? URL {
-                let uploadRequest = SessionManager.default.upload(fileUrl, with: request)
-                performUploadRequest(uploadRequest, requestID: requestID, action: action, from: sender, completion: completion)
+            completion?(nil, nil)
+            notification.post(object: sender)
+        }
+    }
+    
+    open func performAction(_ action: String, with args: ActionArgs?, from sender: Any?, completion: Completion? = nil) {
+        guard let config = configuration else { preconditionFailure("Configuration not set.") }
+        if config.clearPolicy(for: action) == .before, let resultType = config.resultType(for: action) {
+            persistentContainer.clear(entityNames: [resultType])
+        }
+        request(for: action, with: args, from: sender) { data, error in
+            guard error == nil else {
+                self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: error, completion: completion)
+                return
+            }
+            guard let resultType = config.resultType(for: action) else {
+                print("Invalid configuration for action '\(action)'. Result type unknown.")
+                self.handleResponse(action.notification.onReady, with: args, sender: sender, result: data, error: nil, completion: completion)
+                return
+            }
+            var result = data
+            if let resultKeyPath = config.resultKeyPath(for: action), resultKeyPath.count > 0 {
+                if let dict = data as? NSDictionary {
+                    result = dict.value(forKeyPath: resultKeyPath)
+                } else {
+                    print("Invalid data for action '\(action)'. Expected json object.")
+                    self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: nil, completion: completion)
+                    return
+                }
+            }
+            if config.resultIsArray(for: action) {
+                if let arr = result as? [JSONDictionary] {
+                    action.notification.onReady.post(object: sender, userInfo: args == nil ? [Notification.valueKey: arr] : [Notification.valueKey: arr, Notification.argsKey: args!])
+                    let clearOld = config.clearPolicy(for: action) == .after
+                    let setters = config.setters(for: action)
+                    asyncGlobal {
+                        let arr_ = self.prepareResponse(arr, for: action, from: sender) as! [JSONDictionary]
+                        asyncMain {
+                            self.persistentContainer.objects(withEntityName: resultType, fromJSONArray: arr_, clearOld: clearOld, setters: setters) { objects, error in
+                                if error != nil {
+                                    self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: error, completion: completion)
+                                } else {
+                                    self.handleResponse(action.notification.onSuccess, with: args, sender: sender, result: objects, error: nil, completion: completion)
+                                    if let nextAction = config.nextAction(for: action) {
+                                        self.performAction(nextAction, with: args, from: sender)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    print("Invalid data for action '\(action)'. Expected json array.")
+                    self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: nil, completion: completion)
+                }
             } else {
-                print("Couldn't create upload request for \(action).")
+                if let dict = result as? JSONDictionary {
+                    action.notification.onReady.post(object: sender, userInfo: args == nil ? [Notification.valueKey: dict] : [Notification.valueKey: dict, Notification.argsKey: args!])
+                    let clearOld = config.clearPolicy(for: action) == .after
+                    let setters = config.setters(for: action)
+                    asyncGlobal {
+                        let dict_ = self.prepareResponse(dict, for: action, from: sender) as! JSONDictionary
+                        asyncMain {
+                            self.persistentContainer.object(withEntityName: resultType, fromJSONDictionary: dict_, clearOld: clearOld, setters: setters) { object, error in
+                                if error != nil {
+                                    self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: error, completion: completion)
+                                } else {
+                                    self.handleResponse(action.notification.onSuccess, with: args, sender: sender, result: object, error: nil, completion: completion)
+                                    if let nextAction = config.nextAction(for: action) {
+                                        self.performAction(nextAction, with: ActionArgs(content: args?.content, params: object), from: sender)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    print("Invalid data for action '\(action)'. Expected json object.")
+                    self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: nil, completion: completion)
+                }
             }
         }
     }
@@ -373,11 +358,11 @@ open class StandardServiceProvider: ServiceProvider {
 
 extension StandardServiceProvider: NetworkDiagnosticsProtocol {
     
-    public func beforeAction(_ action: String, request: URLRequest) {
+    public func before(action: String, request: URLRequest) {
         printRequest(request, for: action)
     }
     
-    public func afterAction(_ action: String, request: URLRequest?, response: URLResponse?, data: Data?) {
+    public func after(action: String, request: URLRequest?, response: URLResponse?, data: Data?) {
         printRequest(request, for: action, removePercentEncoding: true, printCloseLine: false)
         printResponse(response, data: data, for: action)
     }

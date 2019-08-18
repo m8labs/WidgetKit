@@ -53,20 +53,20 @@ open class StubServiceProvider: StandardServiceProvider {
         return NSError(domain: "\(bundle.bundleIdentifier!).Error", code: code, userInfo: [NSLocalizedDescriptionKey: "Test response not implemented."])
     }
     
-    override func request(for action: String, with object: Any? = nil, from sender: Any? = nil, completion: @escaping Completion) {
+    override func request(for action: String, with args: ActionArgs? = nil, from sender: Any? = nil, completion: @escaping Completion) {
         guard let config = configuration as? StubServiceConfiguration else { preconditionFailure("Configuration not set.") }
-        guard let requestInfo = configuration.urlRequest(for: action, with: object), let request = requestInfo.request else {
-            print("Unable to initiate request for action '\(action)' with object '\(String(describing: object))'"); return
+        guard let requestInfo = configuration.urlRequest(for: action, with: args), let request = requestInfo.request else {
+            print("Unable to initiate request for action '\(action)' with object '\(args?.params ?? "<nil>")'"); return
         }
-        beforeAction(action, request: request)
+        before(action: action, request: request)
         action.notification.onStart.post(object: sender)
         afterTimeout(config.debugDelay) {
-            if let response = config.responseObject(for: action, substitute: object) {
-                self.afterAction(action, request: request, response: nil, data: nil)
+            if let response = config.responseObject(for: action, substitute: args) {
+                self.after(action: action, request: request, response: nil, data: nil)
                 completion(response, nil)
             } else {
                 let error = self.serverError(for: action, code: 404, data: nil)
-                self.afterAction(action, request: request, response: nil, data: nil)
+                self.after(action: action, request: request, response: nil, data: nil)
                 completion(nil, error)
             }
         }

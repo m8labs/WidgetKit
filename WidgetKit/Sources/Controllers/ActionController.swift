@@ -23,6 +23,17 @@
 
 import UIKit
 
+public class ActionArgs: NSObject {
+    
+    @objc public var content: Any?
+    @objc public var params: Any?
+    
+    init(content: Any?, params: Any?) {
+        self.content = content
+        self.params = params
+    }
+}
+
 open class ActionController: CustomIBObject {
     
     static let targetSelectorSignatureFormat = "%@:sender:"
@@ -32,6 +43,7 @@ open class ActionController: CustomIBObject {
     @IBOutlet public weak var cancelButton: UIButton?
     @IBOutlet public weak var form: ContentFormProtocol?
     @IBOutlet public weak var serviceProvider: ServiceProvider?
+    @IBOutlet public weak var nextActionController: ActionController?
     
     @objc public var actionName: String!
     @objc public var elseActionName: String?
@@ -47,13 +59,6 @@ open class ActionController: CustomIBObject {
     
     @objc open var content: Any? {
         return viewController.content
-    }
-    
-    func makeArgs(with object: Any?) -> [String: Any] {
-        var args = [String: Any]()
-        args["content"] = content
-        args["params"] = object ?? params
-        return args
     }
     
     var predicate: NSPredicate? {
@@ -98,7 +103,7 @@ open class ActionController: CustomIBObject {
         }
         let service = resolvedServiceProvider
         status.setupObservers()
-        let args = makeArgs(with: object)
+        let args = ActionArgs(content: content, params: object ?? params)
         (viewController as? SchemeDiagnosticsProtocol)?.beforeAction?(actionName, content: args, sender: self)
         let selector = targetSelector
         if service.responds(to: selector) {
@@ -114,11 +119,11 @@ open class ActionController: CustomIBObject {
         }
         let service = resolvedServiceProvider
         let selector = cancelSelector
-        let args = makeArgs(with: object)
+        let args = ActionArgs(content: content, params: object ?? params)
         if service.responds(to: selector) {
             service.perform(selector, with: args)
         } else if let actionName = resolvedActionName {
-            service.cancelRequest(for: actionName, from: self)
+            service.cancelRequest(for: actionName, with: args, from: self)
         }
     }
     
@@ -169,42 +174,44 @@ extension ActionController: ActionStatusControllerDelegate {
     
     @discardableResult
     @objc open func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool {
+        guard status.isSuccess else { return true }
+        nextActionController?.performAction(with: result)
         return true
     }
 }
 
-public class ButtonActionController: ActionController {
+open class ButtonActionController: ActionController {
     
     var button: UIButton? {
         return sender as? UIButton
     }
     
-    public override func setup() {
+    open override func setup() {
         super.setup()
         button?.addTarget(self, action: #selector(defaultHandler(_:)), for: .touchUpInside)
     }
 }
 
-public class BarButtonActionController: ActionController {
+open class BarButtonActionController: ActionController {
     
     var barButtonItem: UIBarButtonItem? {
         return sender as? UIBarButtonItem
     }
     
-    public override func setup() {
+    open override func setup() {
         super.setup()
         barButtonItem?.target = self
         barButtonItem?.action = #selector(defaultHandler(_:))
     }
 }
 
-public class TableRefreshActionController: ActionController {
+open class TableRefreshActionController: ActionController {
     
     var tableView: UITableView? {
         return sender as? UITableView
     }
     
-    public override func setup() {
+    open override func setup() {
         super.setup()
         let refreshControl = UIRefreshControl()
         refreshControl.addTarget(self, action: #selector(defaultHandler(_:)), for: .valueChanged)
@@ -212,20 +219,20 @@ public class TableRefreshActionController: ActionController {
     }
 }
 
-public class OnLoadActionController: ActionController {
+open class OnLoadActionController: ActionController {
     
-    public override func setup() {
+    open override func setup() {
         super.setup()
         perform(#selector(performAction), with: nil, afterDelay: 0)
     }
 }
 
-public class TimerActionController: ActionController {
+open class TimerActionController: ActionController {
     
     @objc public var interval: TimeInterval = 60
     @objc public var runImmediately: Bool = true
     
-    public override func performAction(with object: Any? = nil) {
+    open override func performAction(with object: Any? = nil) {
         guard viewController != nil else {
             return NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(performAction), object: nil)
         }
@@ -233,7 +240,7 @@ public class TimerActionController: ActionController {
         perform(#selector(performAction), with: nil, afterDelay: interval)
     }
     
-    public override func setup() {
+    open override func setup() {
         super.setup()
         perform(#selector(performAction), with: nil, afterDelay: runImmediately ? 0 : interval)
     }

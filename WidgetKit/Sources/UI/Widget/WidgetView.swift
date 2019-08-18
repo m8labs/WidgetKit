@@ -124,7 +124,7 @@ public class WidgetView: ContainerView {
         precondition(widgetIdentifier != nil, "You should set widgetIdentifier first!")
         Widget.loadArchive(with: widgetIdentifier, path: path) { widget, error in
             guard let widget = widget, error == nil else {
-                print("Failed to load widget with identifier '\(self.widgetIdentifier)'")
+                print("Failed to load widget with identifier '\(self.widgetIdentifier ?? "<nil>")'")
                 return
             }
             self.widget = widget
@@ -156,7 +156,7 @@ public class WidgetView: ContainerView {
             self.downloading = false
             self.activityIndicatorView?.stopAnimating()
             guard let widget = widget, error == nil else {
-                print("Failed to download widget with identifier '\(self.widgetIdentifier)'")
+                print("Failed to download widget with identifier '\(self.widgetIdentifier ?? "<nil>")'")
                 completion?(nil, error)
                 return
             }

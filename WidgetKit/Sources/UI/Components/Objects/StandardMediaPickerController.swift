@@ -28,6 +28,8 @@ import MobileCoreServices
 
 public class PHAssetView: UIImageView {
     
+    private static var imageCache = NSCache<NSString, UIImage>()
+    
     @objc public var largestSide: CGFloat = 0
     
     @IBOutlet var progressView: UIProgressView?
@@ -69,11 +71,18 @@ public class PHAssetView: UIImageView {
     @objc public var asset: PHAsset? {
         didSet {
             guard let asset = self.asset else { return }
-            StandardMediaPickerController.requestImage(for: asset, targetSize: previewSize, progress: { [weak self] progress in
-                self?.progressView?.progress = progress
-            }) { [weak self] image, error in
-                guard asset == self?.asset else { return }
-                self?.image = image
+            if let image = PHAssetView.imageCache.object(forKey: asset.localIdentifier as NSString) {
+                self.image = image
+            } else {
+                StandardMediaPickerController.requestImage(for: asset, targetSize: previewSize, progress: { [weak self] progress in
+                    self?.progressView?.progress = progress
+                }) { [weak self] image, error in
+                    guard asset == self?.asset else { return }
+                    self?.image = image
+                    if image != nil {
+                        PHAssetView.imageCache.setObject(image!, forKey: asset.localIdentifier as NSString)
+                    }
+                }
             }
         }
     }

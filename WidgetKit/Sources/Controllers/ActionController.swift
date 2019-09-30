@@ -173,9 +173,9 @@ extension ActionController {
 extension ActionController: ActionStatusControllerDelegate {
     
     @discardableResult
-    @objc open func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool {
+    @objc open func statusChanged(_ status: ActionStatusController, args: ActionArgs?, result: Any?, error: Error?) -> Bool {
         guard status.isSuccess else { return true }
-        nextActionController?.performAction(with: result)
+        nextActionController?.performAction(with: result ?? args?.params) // if result wasn't mean to exist, just propogate initial params further to the chain
         return true
     }
 }

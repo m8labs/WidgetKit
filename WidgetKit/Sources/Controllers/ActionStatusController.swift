@@ -25,7 +25,7 @@ import UIKit
 
 protocol ActionStatusControllerDelegate {
     
-    func statusChanged(_ status: ActionStatusController, result: Any?, error: Error?) -> Bool
+    func statusChanged(_ status: ActionStatusController, args: ActionArgs?, result: Any?, error: Error?) -> Bool
 }
 
 enum ActionStatus {
@@ -67,11 +67,11 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
             return print("'actionName' was not set to \(self)!")
         }
         observers = [
-            action.notification.onStart.subscribe(to: owner) { [weak self] _ in
+            action.notification.onStart.subscribe(to: owner) { [weak self] n in
                 if let this = self {
                     this.statusValue = .inProgress
                     this.viewController?.refresh(elements: this.elements)
-                    this.owner?.statusChanged(this, result: nil, error: nil)
+                    this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: nil, error: nil)
                 }
             },
             action.notification.onReady.subscribe(to: owner) { [weak self] n in
@@ -79,7 +79,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.valueFromUserInfo, error: nil, sender: this)
                     this.statusValue = .isReady
                     this.viewController?.refresh(elements: this.elements)
-                    this.owner?.statusChanged(this, result: n.valueFromUserInfo, error: nil)
+                    this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: n.valueFromUserInfo, error: nil)
                 }
             },
             action.notification.onSuccess.subscribe(to: owner) { [weak self] n in
@@ -87,7 +87,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                     (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.valueFromUserInfo, error: nil, sender: this)
                     this.statusValue = .isSuccess
                     this.viewController?.refresh(elements: this.elements)
-                    this.owner?.statusChanged(this, result: n.valueFromUserInfo, error: nil)
+                    this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: n.valueFromUserInfo, error: nil)
                     if let segue = this.successSegue, let masterObject = n.valueFromUserInfo as? NSObject {
                         if let keyPath = this.successSegueKeyPath {
                             if let object = masterObject.value(forKeyPath: keyPath) {
@@ -111,7 +111,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                     this.statusValue = .isFailure
                     this.viewController?.refresh(elements: this.elements)
                     if let error = n.errorFromUserInfo {
-                        if this.owner?.statusChanged(this, result: nil, error: error) ?? true {
+                        if this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: nil, error: error) ?? true {
                             if this.needAuthErrorCodes.contains((error as NSError).code), let segue = this.needAuthSegue {
                                 this.viewController?.performSegue(withIdentifier: segue, sender: this)
                             } else {

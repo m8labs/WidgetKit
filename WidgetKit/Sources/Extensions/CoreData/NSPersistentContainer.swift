@@ -131,9 +131,7 @@ public extension NSPersistentContainer {
         }
     }
     
-    func createObject(ofType entityType: NSManagedObject.Type,
-                setters: [String: Any?] = [:],
-                completion: @escaping (NSManagedObject?, Error?)->Void) {
+    func createObject(ofType entityType: NSManagedObject.Type, setters: [String: Any?] = [:], completion: @escaping (NSManagedObject?, Error?)->Void) {
         enqueueBackgroundTask() { context in
             do {
                 let object = NSEntityDescription.insertNewObject(forEntityName: "\(entityType)", into: context)
@@ -153,6 +151,28 @@ public extension NSPersistentContainer {
                 }
             } catch {
                 self.viewContext.perform { completion(nil, error) }
+            }
+        }
+    }
+    
+    func updateObject(_ object: NSManagedObject, setters: [String: Any?] = [:], completion: @escaping (Error?)->Void) {
+        enqueueBackgroundTask() { context in
+            do {
+                let contextObject = context.object(with: object.objectID)
+                setters.forEach { key, value in
+                    if value is NSManagedObjectID {
+                        let relationship = context.object(with: value as! NSManagedObjectID)
+                        contextObject.setValue(relationship, forKey: key)
+                    } else {
+                        contextObject.setValue(value, forKey: key)
+                    }
+                }
+                try context.save()
+                self.viewContext.perform {
+                    completion(nil)
+                }
+            } catch {
+                self.viewContext.perform { completion(error) }
             }
         }
     }

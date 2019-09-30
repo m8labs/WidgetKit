@@ -68,7 +68,6 @@ open class CustomIBObject: NSObject {
 public class ObjectsDictionaryProxy: NSObject {
     
     static let contentKey = "content"
-    static let defaultsKey = "defaults"
     
     private var dict = [String: Any]()
     
@@ -107,11 +106,18 @@ public class ObjectsDictionaryProxy: NSObject {
     }
 }
 
-public class UserDefaultsProxy: NSObject {
+open class DefaultSettings: NSObject {
     
-    public override func value(forKey key: String) -> Any? {
+    static let settingsKey = "Settings"
+    
+    public static var shared = DefaultSettings()
+    
+    @objc open var previewLargestSideInPixels: CGFloat {
+        return 400
+    }
+    
+    open override func value(forUndefinedKey key: String) -> Any? {
         let value = UserDefaults.standard.object(forKey: key)
         return value
     }
 }
-

@@ -32,7 +32,6 @@ open class ContentViewController: UIViewController, ContentDisplayProtocol, Obse
     public var widget: Widget? { return storyboard?.widget }
     
     var vars = ObjectsDictionaryProxy()
-    var defaults = UserDefaultsProxy()
     
     public internal(set) var scheme: NSDictionary?
     
@@ -57,7 +56,7 @@ open class ContentViewController: UIViewController, ContentDisplayProtocol, Obse
     @objc open dynamic func setup() {
         vars.append(elements + (objects ?? []))
         vars.setValue(content, forKey: ObjectsDictionaryProxy.contentKey)
-        vars.setValue(defaults, forKey: ObjectsDictionaryProxy.defaultsKey)
+        vars.setValue(DefaultSettings.shared, forKey: DefaultSettings.settingsKey)
         loadScheme()
         if let objects = objects {
             for case let object as CustomIBObject in objects {

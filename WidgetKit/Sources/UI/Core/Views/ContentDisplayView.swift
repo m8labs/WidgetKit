@@ -78,7 +78,7 @@ open class ContentDisplayView: UIView, ContentDisplayProtocol, ObserversStorageP
     
     open func setup(scheme dict: NSDictionary? = nil) {
         vars.append(elements)
-        vars.setValue(UserDefaultsProxy(), forKey: ObjectsDictionaryProxy.defaultsKey)
+        vars.setValue(DefaultSettings.shared, forKey: DefaultSettings.settingsKey)
         setupObservers()
         if let dict = dict {
             self.scheme = dict

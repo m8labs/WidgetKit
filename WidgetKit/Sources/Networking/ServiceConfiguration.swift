@@ -38,57 +38,6 @@ extension TimeZone {
     }
 }
 
-public protocol ServiceConfigurationProtocol {
-    
-    var baseUrl: String { get }
-    
-    var apiPath: String { get }
-    
-    var filesPath: String { get }
-    
-    var authUrl: String? { get }
-    
-    var socketUrl: String? { get }
-    
-    var authParameters: Parameters { get }
-    
-    var defaultHeaders: HTTPHeaders { get }
-    
-    var defaultParameters: Parameters { get }
-    
-    func needAuth(for action: String) -> Bool
-    
-    func httpMethod(for action: String) -> HTTPMethod
-    
-    func headers(for action: String) -> HTTPHeaders
-    
-    func parameters(for action: String) -> Parameters?
-    
-    func multipartParams(for action: String) -> Parameters?
-    
-    func setters(for action: String) -> [String: Any]
-    
-    func url(for action: String) -> String?
-    
-    func encoding(for action: String) -> RequestEncoding
-    
-    func isUpload(for action: String) -> Bool
-    
-    func resultType(for action: String) -> String?
-    
-    func resultIsArray(for action: String) -> Bool
-    
-    func resultKeyPath(for action: String) -> String?
-    
-    func errorKeyPath(for action: String) -> String
-    
-    func nextAction(for action: String) -> String?
-    
-    func clearPolicy(for action: String) -> ClearPolicy
-    
-    func urlRequest(for action: String, with object: Any?) -> (request: URLRequest?, body: [String: Any]?)?
-}
-
 open class ServiceConfiguration {
     
     var configDict: NSMutableDictionary?
@@ -138,9 +87,6 @@ open class ServiceConfiguration {
     public init(resource: String, bundle: Bundle?) {
         loadFrom(resource: resource, bundle: bundle)
     }
-}
-
-extension ServiceConfiguration: ServiceConfigurationProtocol {
     
     public var baseUrl: String {
         if let url = configDict?.value(forKeyPath: "defaults.baseUrl") as? String {
@@ -200,7 +146,7 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
     }
     
     public func multipartParams(for action: String) -> Parameters? {
-        let params = configDict?.value(forKeyPath: "actions.\(action).multipart") as? Parameters
+        let params = configDict?.value(forKeyPath: "actions.\(action).upload") as? Parameters
         return params
     }
     

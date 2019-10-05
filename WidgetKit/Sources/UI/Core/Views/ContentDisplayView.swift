@@ -105,15 +105,19 @@ extension UIView {
     
     var wx_elements: Set<NSObject> {
         var elements = Set<NSObject>()
-        allSubviews { view in
+        let addView = { (view: UIView) in
             if view.wx.identifier != nil || view.wx.addBinding != nil {
                 elements.insert(view)
             }
-            view.constraints.forEach { c in
+            (view.constraints + (view.superview?.constraints ?? [])).forEach { c in
                 if c.wx.identifier != nil || c.wx.addBinding != nil {
                     elements.insert(c)
                 }
             }
+        }
+        addView(self)
+        allSubviews { view in
+            addView(view)
         }
         return elements
     }

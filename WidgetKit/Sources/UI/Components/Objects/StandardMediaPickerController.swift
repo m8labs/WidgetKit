@@ -169,6 +169,7 @@ public extension StandardMediaPickerController {
         let options = PHImageRequestOptions()
         options.version = .current
         options.isNetworkAccessAllowed = true
+        options.deliveryMode = .highQualityFormat
         options.progressHandler = { percent, error, _, _ in
             progress(Float(percent))
         }
@@ -194,10 +195,10 @@ public extension StandardMediaPickerController {
         }
     }
     
-    static func requestImageFile(for asset: PHAsset, targetSize: CGSize?, progress: @escaping (Float)->Void, completion: @escaping (URL?, Error?)->Void) {
+    static func requestImageFile(for asset: PHAsset, targetSize: CGSize?, progress: @escaping (Float)->Void, completion: @escaping (String?, Error?)->Void) {
         let outputPath = asset.tmpImagePath(with: targetSize != nil ? "\(Int(targetSize!.width))x\(Int(targetSize!.height))" : "original")
         if FileManager.default.fileExists(atPath: outputPath) {
-            return completion(URL(fileURLWithPath: outputPath), nil)
+            return completion(outputPath, nil)
         }
         StandardMediaPickerController.requestImageData(for: asset, targetSize: targetSize, progress: progress) { data, error in
             guard let data = data else {
@@ -207,17 +208,8 @@ public extension StandardMediaPickerController {
                 do {
                     let url = URL(fileURLWithPath: outputPath)
                     try data.write(to: url, options: .atomic)
-                    let aSize = url.contentDimensions
-                    if let aSize = aSize, let tSize = targetSize {
-                        if aSize.width * aSize.height >= tSize.width * tSize.height { // ignore smaller results
-                            asyncMain {
-                                completion(url, nil)
-                            }
-                        }
-                    } else {
-                        asyncMain {
-                            completion(url, nil)
-                        }
+                    asyncMain {
+                        completion(outputPath, nil)
                     }
                 } catch {
                     asyncMain {
@@ -228,10 +220,10 @@ public extension StandardMediaPickerController {
         }
     }
     
-    static func requestVideoFile(for asset: PHAsset, quality: VideoQuality, progress: @escaping (Float)->Void, completion: @escaping (URL?, Error?)->Void) {
+    static func requestVideoFile(for asset: PHAsset, quality: VideoQuality, progress: @escaping (Float)->Void, completion: @escaping (String?, Error?)->Void) {
         let outputPath = asset.tmpVideoPath
         if FileManager.default.fileExists(atPath: outputPath) {
-            return completion(URL(fileURLWithPath: outputPath), nil)
+            return completion(outputPath, nil)
         }
         let options = PHVideoRequestOptions()
         options.isNetworkAccessAllowed = true
@@ -246,20 +238,20 @@ public extension StandardMediaPickerController {
             session.outputFileType = .mov
             session.shouldOptimizeForNetworkUse = true
             session.exportAsynchronously {
-                completion(session.outputURL, session.error)
+                completion(session.outputURL?.path, session.error)
             }
             asyncGlobal {
                 while session.status == .waiting || session.status == .exporting {
                     asyncMain {
                         progress(session.progress)
                     }
-                    sleep(500)
+                    sleep(1)
                 }
             }
         }
     }
     
-    static func requestMediaFile(for asset: PHAsset, imageSize: CGSize? = nil, videoQuality: VideoQuality = .medium, progress: @escaping (Float)->Void, completion: @escaping (URL?, Error?)->Void) {
+    static func requestMediaFile(for asset: PHAsset, imageSize: CGSize? = nil, videoQuality: VideoQuality = .medium, progress: @escaping (Float)->Void, completion: @escaping (String?, Error?)->Void) {
         switch asset.mediaType {
         case .image:
             StandardMediaPickerController.requestImageFile(for: asset, targetSize: imageSize, progress: progress, completion: completion)
@@ -301,6 +293,9 @@ public class MediaPickerResult: NSObject {
     @objc public var imageUrl: URL? { return info[UIImagePickerControllerImageURL] as? URL }
     
     @objc public var mediaUrl: URL? { return info[UIImagePickerControllerMediaURL] as? URL }
+    
+    @available(iOS 11.0, *)
+    @objc public var fileUrl: URL? { return imageUrl ?? mediaUrl }
     
     @objc public var isMovie: Bool { return mediaType == String(kUTTypeMovie) }
 }
@@ -375,6 +370,17 @@ public extension URL {
         } else {
             return nil
         }
+    }
+}
+
+public extension String {
+    
+    var pathExtension: String {
+        return (self as NSString).pathExtension
+    }
+    
+    var contentDimensions: CGSize? {
+        return URL(fileURLWithPath: self).contentDimensions
     }
 }
 

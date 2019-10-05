@@ -50,8 +50,6 @@ open class TableDisplayController: BaseDisplayController {
     
     @objc public var performSegueForCells = -1
     
-    public var dynamicCellIdentifier: ((Any, IndexPath) -> String?)?
-    
     public var cellSelected: ((ContentTableViewCell, Any, IndexPath) -> Void)?
     
     public var cellDeselected: ((ContentTableViewCell, Any, IndexPath) -> Void)?
@@ -111,16 +109,15 @@ open class TableDisplayController: BaseDisplayController {
     }
     
     open func cellIdentifier(for object: Any, at indexPath: IndexPath) -> String {
-        vars.setValue(object, forKey: ObjectsDictionaryProxy.contentKey)
-        var cellId = ""
         let isSearching = searchController?.isSearching ?? false
-        let key = isSearching ? type(of: self).searchCellIdentifierKey : type(of: self).cellIdentifierKey
-        if let eval = wx.evals[key] ?? wx.evals[type(of: self).cellIdentifierKey] {
-            cellId = eval.perform(with: vars) as! String
-        } else {
-            cellId = dynamicCellIdentifier?(object, indexPath) ?? ((isSearching ? searchCellIdentifier : cellIdentifier) ?? type(of: self).defaultCellIdentifier)
+        if let vars = vars {
+            vars.setValue(object, forKey: ObjectsDictionaryProxy.contentKey)
+            let key = isSearching ? type(of: self).searchCellIdentifierKey : type(of: self).cellIdentifierKey
+            if let eval = wx.evals[key] ?? wx.evals[type(of: self).cellIdentifierKey] {
+                return eval.perform(with: vars) as! String
+            }
         }
-        return cellId
+        return (isSearching ? searchCellIdentifier : cellIdentifier) ?? type(of: self).defaultCellIdentifier
     }
     
     open func configureCell(_ cell: ContentTableViewCell, object: Any, indexPath: IndexPath) {
@@ -308,10 +305,6 @@ extension TableDisplayController: UITableViewDelegate {
     
     open func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         guard let object = contentProvider.item(at: indexPath), shouldDisplayObject(object) else { return 0 }
-        return UITableViewAutomaticDimension
-    }
-    
-    open func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
         return UITableViewAutomaticDimension
     }
     

@@ -28,7 +28,7 @@ public typealias ServiceProvider = ServiceProviderProtocol & NSObject
 public typealias Completion = ((_ result: Any?, _ error: Error?) -> Void)
 
 @objc
-public protocol ServiceProviderProtocol: class {
+public protocol ServiceProviderProtocol: AnyObject {
     
     func performAction(_ action: String, with args: ActionArgs?, from sender: Any?, completion: Completion?)
     
@@ -75,7 +75,7 @@ open class StandardServiceProvider: ServiceProvider {
         return widget?.persistentContainer ?? NSPersistentContainer.default
     }
     
-    public var configuration: ServiceConfigurationProtocol!
+    public var configuration: ServiceConfiguration!
     
     public required override init() {
         super.init()
@@ -175,7 +175,7 @@ open class StandardServiceProvider: ServiceProvider {
         requests[requestID] = uploadRequest
         uploadRequest
             .uploadProgress { progress in
-                print("\(action) progress: \(progress.fractionCompleted)")
+                print("'\(action)' progress: \(progress.fractionCompleted)")
                 action.notification.onProgress.post(object: sender, userInfo: [Notification.valueKey: progress.fractionCompleted, Notification.argsKey: args!])
             }
             .validate { request, response, data in
@@ -197,7 +197,7 @@ open class StandardServiceProvider: ServiceProvider {
     }
     
     func upload(for action: String, with args: ActionArgs?, from sender: Any? = nil, completion: @escaping Completion) {
-        guard let params = configuration.multipartParams(for: action) else {
+        guard var parameters = configuration.multipartParams(for: action) else {
             return print("Unable to initiate upload request for action '\(action)'. Multipart params requered.")
         }
         guard let requestInfo = configuration.urlRequest(for: action, with: args), let rawRequest = requestInfo.request else {
@@ -209,13 +209,20 @@ open class StandardServiceProvider: ServiceProvider {
             return print("Unable to compose request for action '\(action)' with object '\(String(describing: args))'")
         }
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
+        if let object = args {
+            parameters = parameters.substitute(object)
+        }
         let fillData: (MultipartFormData) -> Void = { formData in
-            params.forEach { name, keyPath in
-                if let value = args?.value(forKeyPath: keyPath as! String) {
-                    if let data = value as? Data {
-                        formData.append(data, withName: name)
-                    } else if let fileUrl = value as? URL {
+            parameters.forEach { name, value in
+                if let data = value as? Data {
+                    formData.append(data, withName: name)
+                } else if let fileUrl = value as? URL {
+                    formData.append(fileUrl, withName: name)
+                } else if let stringValue = value as? String {
+                    if stringValue.hasPrefix("file"), let fileUrl = URL(string: stringValue) {
                         formData.append(fileUrl, withName: name)
+                    } else if let data = stringValue.data(using: .utf8) {
+                        formData.append(data, withName: name)
                     }
                 }
             }
@@ -248,7 +255,7 @@ open class StandardServiceProvider: ServiceProvider {
             notification.post(object: sender, userInfo: args == nil ? [Notification.valueKey: result] : [Notification.valueKey: result, Notification.argsKey: args!])
         } else {
             completion?(nil, nil)
-            notification.post(object: sender)
+            notification.post(object: sender, userInfo: args == nil ? nil : [Notification.argsKey: args!])
         }
     }
     
@@ -259,13 +266,11 @@ open class StandardServiceProvider: ServiceProvider {
         }
         request(for: action, with: args, from: sender) { data, error in
             guard error == nil else {
-                self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: error, completion: completion)
-                return
+                return self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: error, completion: completion)
             }
             guard let resultType = config.resultType(for: action) else {
-                print("Invalid configuration for action '\(action)'. Result type unknown.")
-                self.handleResponse(action.notification.onReady, with: args, sender: sender, result: data, error: nil, completion: completion)
-                return
+                print("Empty result type for action '\(action)'.")
+                return self.handleResponse(action.notification.onSuccess, with: args, sender: sender, result: nil, error: nil, completion: completion)
             }
             var result = data
             if let resultKeyPath = config.resultKeyPath(for: action), resultKeyPath.count > 0 {
@@ -273,8 +278,7 @@ open class StandardServiceProvider: ServiceProvider {
                     result = dict.value(forKeyPath: resultKeyPath)
                 } else {
                     print("Invalid data for action '\(action)'. Expected json object.")
-                    self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: nil, completion: completion)
-                    return
+                    return self.handleResponse(action.notification.onError, with: args, sender: sender, result: nil, error: nil, completion: completion)
                 }
             }
             if config.resultIsArray(for: action) {

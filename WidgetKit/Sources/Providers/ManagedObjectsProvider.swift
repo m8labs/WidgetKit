@@ -109,15 +109,13 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
     }
     
     public override func firstIndexPath() -> IndexPath? {
-        guard let sections = fetchedResultsController.sections else { return nil }
-        let firstSection = sections.first!
+        guard let firstSection = fetchedResultsController.sections?.first else { return nil }
         let count = firstSection.numberOfObjects
         return count > 0 ? IndexPath.first : nil
     }
     
     public override func lastIndexPath() -> IndexPath? {
-        guard let sections = fetchedResultsController.sections else { return nil }
-        let lastSection = sections.last!
+        guard let sections = fetchedResultsController.sections, let lastSection = sections.last else { return nil }
         let count = lastSection.numberOfObjects
         return count > 0 ? IndexPath(row: count - 1, section: sections.count - 1) : nil
     }

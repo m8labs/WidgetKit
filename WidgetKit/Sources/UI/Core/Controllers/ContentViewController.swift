@@ -128,7 +128,7 @@ extension ContentViewController {
 extension UIViewController {
     
     var wx_elements: Set<NSObject> {
-        return (view.wx.identifier != nil || view.wx.addBinding != nil) ? view.wx_elements.union([view]) : view.wx_elements
+        return view.wx_elements
     }
     
     var wx_navbarElements: Set<NSObject> {

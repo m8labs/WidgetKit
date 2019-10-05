@@ -52,7 +52,7 @@ extension CollectionCircleScrollController {
     open override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let indexPath = indexPath.section == 0 && circleScrollFactor > 1 ? IndexPath(item: indexPath.item % contentProvider.itemsCountInSection(0), section: 0) : indexPath
         let object = contentProvider.item(at: indexPath)!
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: dynamicCellIdentifier?(object, indexPath) ?? (cellIdentifier ?? CollectionDisplayController.defaultCellIdentifier), for: indexPath)
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellIdentifier(for: object, at: indexPath), for: indexPath)
         assert(cell is ContentCollectionViewCell, "Cell must be of '\(ContentCollectionViewCell.self)' type.")
         configureCell(cell as! ContentCollectionViewCell, object: object, indexPath: indexPath)
         return cell

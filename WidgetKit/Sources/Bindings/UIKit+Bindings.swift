@@ -84,17 +84,17 @@ extension UIImageView {
         }
     }
     
-    open var wx_autoValue: String? {
+    open var wx_autoValue: Any? {
         get { return nil }
         set {
-            if let value = newValue {
-                if value.hasPrefix("http") {
-                    wx_imageUrl = value
+            if let string = newValue as? String {
+                if string.hasPrefix("http") {
+                    wx_imageUrl = string
                 } else {
-                    wx_imageName = value
+                    wx_imageName = string
                 }
-            } else {
-                image = nil
+            } else if let url = newValue as? URL {
+                wx_imageUrl = url.absoluteString
             }
         }
     }

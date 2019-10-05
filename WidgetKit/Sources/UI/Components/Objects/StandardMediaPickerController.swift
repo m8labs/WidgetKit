@@ -30,51 +30,20 @@ public class PHAssetView: UIImageView {
     
     private static var imageCache = NSCache<NSString, UIImage>()
     
-    @objc public var largestSide: CGFloat = 0
+    @objc public var contentSize = CGSize.zero
     
     @IBOutlet var progressView: UIProgressView?
     
-    private var contentPixelWidth: Int {
-        if let image = self.image {
-            return Int(image.size.width * image.scale)
-        } else if let asset = self.asset {
-            return asset.pixelWidth
-        }
-        return 0
-    }
-    
-    private var contentPixelHeight: Int {
-        if let image = self.image {
-            return Int(image.size.height * image.scale)
-        } else if let asset = self.asset {
-            return asset.pixelHeight
-        }
-        return 0
-    }
-    
-    private var previewSize: CGSize {
-        let w = contentPixelWidth
-        let h = contentPixelHeight
-        if largestSide > 0, w > 0, h > 0 {
-            let maxS = max(w, h)
-            let minS = min(w, h)
-            let f = CGFloat(minS) / CGFloat(maxS) // f <= 1.0
-            if w > h {
-                return CGSize(width: largestSide, height: largestSide * f) // horizontal image
-            } else {
-                return CGSize(width: largestSide * f, height: largestSide) // vertical image
-            }
-        }
-        return CGSize(width: self.bounds.size.width * UIScreen.main.scale, height: self.bounds.size.height * UIScreen.main.scale)
-    }
-    
     @objc public var asset: PHAsset? {
         didSet {
-            guard let asset = self.asset else { return }
+            guard let asset = self.asset else {
+                self.image = nil
+                return
+            }
             if let image = PHAssetView.imageCache.object(forKey: asset.localIdentifier as NSString) {
                 self.image = image
             } else {
-                StandardMediaPickerController.requestImage(for: asset, targetSize: previewSize, progress: { [weak self] progress in
+                StandardMediaPickerController.requestImage(for: asset, targetSize: asset.previewSizeInPixels, progress: { [weak self] progress in
                     self?.progressView?.progress = progress
                 }) { [weak self] image, error in
                     guard asset == self?.asset else { return }
@@ -87,12 +56,28 @@ public class PHAssetView: UIImageView {
         }
     }
     
-    override public var intrinsicContentSize: CGSize {
-        if image != nil || asset != nil {
-            let size = previewSize
-            return CGSize(width: size.width / UIScreen.main.scale, height: size.height / UIScreen.main.scale)
+    override open var intrinsicContentSize: CGSize {
+        if contentSize != CGSize.zero {
+            return contentSize
+        }
+        if asset != nil {
+            return asset!.previewSizeInPoints
+        }
+        if image != nil {
+            return image!.size
         }
         return CGSize.zero
+    }
+    
+    override open var wx_autoValue: Any? {
+        get { return super.wx_autoValue }
+        set {
+            if let value = newValue as? PHAsset {
+                asset = value
+            } else {
+                super.wx_autoValue = newValue
+            }
+        }
     }
 }
 
@@ -148,8 +133,10 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
             perform()
         } else {
             PHPhotoLibrary.requestAuthorization { status in
-                guard status == .authorized else { return showError() }
-                perform()
+                asyncMain {
+                    guard status == .authorized else { return showError() }
+                    perform()
+                }
             }
         }
     }
@@ -208,7 +195,7 @@ public extension StandardMediaPickerController {
     }
     
     static func requestImageFile(for asset: PHAsset, targetSize: CGSize?, progress: @escaping (Float)->Void, completion: @escaping (URL?, Error?)->Void) {
-        let outputPath = asset.tmpImagePath(with: targetSize != nil ? "\(targetSize!.width)x\(targetSize!.height)" : "original")
+        let outputPath = asset.tmpImagePath(with: targetSize != nil ? "\(Int(targetSize!.width))x\(Int(targetSize!.height))" : "original")
         if FileManager.default.fileExists(atPath: outputPath) {
             return completion(URL(fileURLWithPath: outputPath), nil)
         }
@@ -220,8 +207,17 @@ public extension StandardMediaPickerController {
                 do {
                     let url = URL(fileURLWithPath: outputPath)
                     try data.write(to: url, options: .atomic)
-                    asyncMain {
-                        completion(url, nil)
+                    let aSize = url.contentDimensions
+                    if let aSize = aSize, let tSize = targetSize {
+                        if aSize.width * aSize.height >= tSize.width * tSize.height { // ignore smaller results
+                            asyncMain {
+                                completion(url, nil)
+                            }
+                        }
+                    } else {
+                        asyncMain {
+                            completion(url, nil)
+                        }
                     }
                 } catch {
                     asyncMain {
@@ -330,13 +326,65 @@ extension UIImage {
     public static let defaultJPEGCompression: CGFloat = 0.9
 }
 
+public extension CGSize {
+    
+    var previewSizeInPixels: CGSize {
+        let w = width
+        let h = height
+        guard w > 0, h > 0 else { return CGSize.zero }
+        let maxS = max(w, h)
+        let minS = min(w, h)
+        let f = CGFloat(minS) / CGFloat(maxS) // f <= 1.0
+        let largestSide = DefaultSettings.shared.previewLargestSideInPixels
+        if w > h {
+            return CGSize(width: largestSide, height: largestSide * f) // horizontal image
+        } else {
+            return CGSize(width: largestSide * f, height: largestSide) // vertical image
+        }
+    }
+    
+    var previewSizeInPoints: CGSize {
+        let pxSize = previewSizeInPixels
+        return CGSize(width: pxSize.width / UIScreen.main.scale, height: pxSize.height / UIScreen.main.scale)
+    }
+}
+
+public extension PHAsset {
+    
+    var previewSizeInPixels: CGSize {
+        return CGSize(width: pixelWidth, height: pixelHeight).previewSizeInPixels
+    }
+    
+    var previewSizeInPoints: CGSize {
+        return CGSize(width: pixelWidth, height: pixelHeight).previewSizeInPoints
+    }
+}
+
+public extension URL {
+    
+    var contentDimensions: CGSize? {
+        guard let source = CGImageSourceCreateWithURL(self as CFURL, nil) else {
+            return nil
+        }
+        let propertiesOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, propertiesOptions) as? [CFString: Any] else {
+            return nil
+        }
+        if let w = properties[kCGImagePropertyPixelWidth] as? CGFloat, let h = properties[kCGImagePropertyPixelHeight] as? CGFloat {
+            return CGSize(width: w, height: h)
+        } else {
+            return nil
+        }
+    }
+}
+
 extension PHAsset {
     
     var tmpVideoPath: String {
-        return NSTemporaryDirectory() + "tmp\(localIdentifier).mov"
+        return NSTemporaryDirectory() + "tmp\(localIdentifier.replacingOccurrences(of: "/", with: "-")).mov"
     }
     
     func tmpImagePath(with tag: String) -> String {
-        return NSTemporaryDirectory() + "tmp\(localIdentifier)-\(tag).jpeg"
+        return NSTemporaryDirectory() + "tmp\(localIdentifier.replacingOccurrences(of: "/", with: "-"))-\(tag).jpeg"
     }
 }

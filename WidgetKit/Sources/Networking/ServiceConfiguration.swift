@@ -40,7 +40,11 @@ extension TimeZone {
 
 public protocol ServiceConfigurationProtocol {
     
-    var baseUrl: String? { get }
+    var baseUrl: String { get }
+    
+    var apiPath: String { get }
+    
+    var filesPath: String { get }
     
     var authUrl: String? { get }
     
@@ -138,11 +142,25 @@ open class ServiceConfiguration {
 
 extension ServiceConfiguration: ServiceConfigurationProtocol {
     
-    public var baseUrl: String? {
+    public var baseUrl: String {
         if let url = configDict?.value(forKeyPath: "defaults.baseUrl") as? String {
             return url.hasSuffix("/") ? url : "\(url)/"
         }
-        return nil
+        return "http://localhost/"
+    }
+    
+    public var apiPath: String {
+        if let path = configDict?.value(forKeyPath: "defaults.apiPath") as? String {
+            return path.hasSuffix("/") ? path : "\(path)/"
+        }
+        return ""
+    }
+    
+    public var filesPath: String {
+        if let path = configDict?.value(forKeyPath: "defaults.filesPath") as? String {
+            return path.hasSuffix("/") ? path : "\(path)/"
+        }
+        return ""
     }
     
     public var authUrl: String? {
@@ -200,9 +218,9 @@ extension ServiceConfiguration: ServiceConfigurationProtocol {
     public func url(for action: String) -> String? {
         if let action = configDict?.value(forKeyPath: "actions.\(action)") as? [String: Any] {
             if let path = action["path"] as? String  {
-                return path.hasPrefix("http") ? path : (baseUrl ?? "") + path
+                return path.hasPrefix("http") ? path : baseUrl + apiPath + path
             }
-            return baseUrl
+            return baseUrl + apiPath
         }
         return nil
     }

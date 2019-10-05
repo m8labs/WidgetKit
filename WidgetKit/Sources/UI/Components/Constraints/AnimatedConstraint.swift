@@ -28,24 +28,22 @@ public class AnimatedConstraint: NSLayoutConstraint {
     @objc public var animationDuration = 0.0
     @objc public var animationDelay = 0.0
     
+    public var view: UIView? {
+        return self.firstItem as? UIView
+    }
+    
     @objc public var animatedConstant: CGFloat {
         get {
             return constant
         }
         set {
+            super.constant = newValue
             after(animationDelay) { [weak self] in
-                if let this = self {
-                    this.constant = newValue
-                    AnimatedConstraint.animateConstraint(this, duration: this.animationDuration)
+                if let view = self?.view {
+                    UIView.animate(withDuration: self?.animationDuration ?? 0) {
+                        view.superview?.layoutIfNeeded()
+                    }
                 }
-            }
-        }
-    }
-    
-    static func animateConstraint(_ constraint: NSLayoutConstraint, duration: TimeInterval) {
-        if let view = constraint.firstItem as? UIView {
-            UIView.animate(withDuration: duration) {
-                view.superview?.layoutIfNeeded()
             }
         }
     }
@@ -60,19 +58,25 @@ public class ExpandingConstraint: AnimatedConstraint {
         initialHeight = constant
     }
     
-    public func expand() {
-        animatedConstant = initialHeight
-    }
-    
-    public func collapse() {
-        animatedConstant = 0
-    }
-    
-    public func toggle() {
-        if constant == 0 {
-            expand()
+    public func setExpanded(_ expanded: Bool, animated: Bool = false) {
+        if animated {
+            animatedConstant = expanded ? initialHeight : 0
         } else {
-            collapse()
+            constant = expanded ? initialHeight : 0
         }
+    }
+    
+    @objc public var expanded: Bool {
+        @objc(isExpanded)
+        get {
+            return constant == initialHeight
+        }
+        set {
+            setExpanded(newValue)
+        }
+    }
+    
+    public func toggle(animated: Bool = false) {
+        setExpanded(!expanded, animated: animated)
     }
 }

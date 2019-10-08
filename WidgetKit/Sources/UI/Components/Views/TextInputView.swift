@@ -56,6 +56,20 @@ public class TextInputView: UIView, ObserversStorageProtocol {
         }
     }
     
+    public var customInputView: UIView? {
+        get {
+            return (textField ?? textView)?.inputView
+        }
+        set {
+            textField?.becomeFirstResponder()
+            textView?.becomeFirstResponder()
+            textField?.inputView = newValue
+            textView?.inputView = newValue
+            textField?.reloadInputViews()
+            textView?.reloadInputViews()
+        }
+    }
+    
     public var cursorPosition: Int = 0 {
         didSet {
             if let textView = textView {

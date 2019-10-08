@@ -219,7 +219,9 @@ open class StandardServiceProvider: ServiceProvider {
                 } else if let fileUrl = value as? URL {
                     formData.append(fileUrl, withName: name)
                 } else if let stringValue = value as? String {
-                    if stringValue.hasPrefix("file"), let fileUrl = URL(string: stringValue) {
+                    if stringValue.hasPrefix("/") {
+                        formData.append(URL(fileURLWithPath: stringValue), withName: name)
+                    } else if stringValue.hasPrefix("file"), let fileUrl = URL(string: stringValue) {
                         formData.append(fileUrl, withName: name)
                     } else if let data = stringValue.data(using: .utf8) {
                         formData.append(data, withName: name)

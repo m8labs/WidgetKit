@@ -176,7 +176,7 @@ open class StandardServiceProvider: ServiceProvider {
         uploadRequest
             .uploadProgress { progress in
                 print("'\(action)' progress: \(progress.fractionCompleted)")
-                action.notification.onProgress.post(object: sender, userInfo: [Notification.valueKey: progress.fractionCompleted, Notification.argsKey: args!])
+                action.notification.onProgress.post(object: sender, userInfo: [Notification.valueKey: NSNumber(value: progress.fractionCompleted), Notification.argsKey: args!])
             }
             .validate { request, response, data in
                 self.after(action: action, request: request, response: response, data: data)

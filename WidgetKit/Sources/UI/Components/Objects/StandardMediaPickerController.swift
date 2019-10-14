@@ -182,35 +182,36 @@ public extension StandardMediaPickerController {
         }
     }
     
-    static func requestImageFile(for asset: PHAsset, targetSize: CGSize?, progress: @escaping (Float)->Void, completion: @escaping (String?, Error?)->Void) {
+    static func requestImageFile(for asset: PHAsset, targetSize: CGSize?, progress: @escaping (Float)->Void, completion: @escaping (String?, UInt64?, Error?)->Void) {
         let outputPath = asset.tmpImagePath(with: targetSize != nil ? "\(Int(targetSize!.width))x\(Int(targetSize!.height))" : "original")
         if FileManager.default.fileExists(atPath: outputPath) {
-            return completion(outputPath, nil)
+            return completion(outputPath, outputPath.fileSize, nil)
         }
         StandardMediaPickerController.requestImageData(for: asset, targetSize: targetSize, progress: progress) { data, error in
             guard let data = data else {
-                return completion(nil, error)
+                return completion(nil, nil, error)
             }
             asyncGlobal {
                 do {
                     let url = URL(fileURLWithPath: outputPath)
                     try data.write(to: url, options: .atomic)
+                    let fileSize = outputPath.fileSize
                     asyncMain {
-                        completion(outputPath, nil)
+                        completion(outputPath, fileSize, nil)
                     }
                 } catch {
                     asyncMain {
-                        completion(nil, error)
+                        completion(nil, nil, error)
                     }
                 }
             }
         }
     }
     
-    static func requestVideoFile(for asset: PHAsset, quality: VideoQuality, progress: @escaping (Float)->Void, completion: @escaping (String?, Error?)->Void) {
+    static func requestVideoFile(for asset: PHAsset, quality: VideoQuality, progress: @escaping (Float)->Void, completion: @escaping (String?, UInt64?, Error?)->Void) {
         let outputPath = asset.tmpVideoPath
         if FileManager.default.fileExists(atPath: outputPath) {
-            return completion(outputPath, nil)
+            return completion(outputPath, outputPath.fileSize, nil)
         }
         let options = PHVideoRequestOptions()
         options.isNetworkAccessAllowed = true
@@ -219,33 +220,36 @@ public extension StandardMediaPickerController {
         }
         PHImageManager.default().requestExportSession(forVideo: asset, options: options, exportPreset: quality.exportPreset) { exportSession, info in
             guard let session = exportSession else {
-                return completion(nil, info?[PHImageErrorKey] as? Error)
+                return completion(nil, 0, info?[PHImageErrorKey] as? Error)
             }
             session.outputURL = URL(fileURLWithPath: outputPath)
             session.outputFileType = .mov
             session.shouldOptimizeForNetworkUse = true
             session.exportAsynchronously {
-                completion(session.outputURL?.path, session.error)
+                let fileSize = session.outputURL?.path.fileSize
+                asyncMain {
+                    completion(session.outputURL?.path, fileSize, session.error)
+                }
             }
             asyncGlobal {
                 while session.status == .waiting || session.status == .exporting {
                     asyncMain {
                         progress(session.progress)
                     }
-                    sleep(1)
+                    Thread.sleep(forTimeInterval: 0.5)
                 }
             }
         }
     }
     
-    static func requestMediaFile(for asset: PHAsset, imageSize: CGSize? = nil, videoQuality: VideoQuality = .medium, progress: @escaping (Float)->Void, completion: @escaping (String?, Error?)->Void) {
+    static func requestMediaFile(for asset: PHAsset, imageSize: CGSize? = nil, videoQuality: VideoQuality = .medium, progress: @escaping (Float)->Void, completion: @escaping (String?, UInt64?, Error?)->Void) {
         switch asset.mediaType {
         case .image:
             StandardMediaPickerController.requestImageFile(for: asset, targetSize: imageSize, progress: progress, completion: completion)
         case .video:
             StandardMediaPickerController.requestVideoFile(for: asset, quality: videoQuality, progress: progress, completion: completion)
         default:
-            completion(nil, nil)
+            completion(nil, nil, nil)
         }
     }
 }
@@ -368,6 +372,13 @@ public extension String {
     
     var contentDimensions: CGSize? {
         return URL(fileURLWithPath: self).contentDimensions
+    }
+    
+    var fileSize: UInt64? {
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: self) as NSDictionary {
+            return attrs.fileSize()
+        }
+        return nil
     }
 }
 

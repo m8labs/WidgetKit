@@ -30,8 +30,6 @@ public class PHAssetView: UIImageView {
     
     private static var imageCache = NSCache<NSString, UIImage>()
     
-    @objc public var contentSize = CGSize.zero
-    
     @IBOutlet var progressView: UIProgressView?
     
     @objc public var asset: PHAsset? {
@@ -54,19 +52,6 @@ public class PHAssetView: UIImageView {
                 }
             }
         }
-    }
-    
-    override open var intrinsicContentSize: CGSize {
-        if contentSize != CGSize.zero {
-            return contentSize
-        }
-        if asset != nil {
-            return asset!.previewSizeInPoints
-        }
-        if image != nil {
-            return image!.size
-        }
-        return CGSize.zero
     }
     
     override open var wx_autoValue: Any? {
@@ -332,9 +317,9 @@ public extension CGSize {
         let f = CGFloat(minS) / CGFloat(maxS) // f <= 1.0
         let largestSide = DefaultSettings.shared.previewLargestSideInPixels
         if w > h {
-            return CGSize(width: largestSide, height: largestSide * f) // horizontal image
+            return CGSize(width: largestSide, height: ceil(largestSide * f)) // horizontal image
         } else {
-            return CGSize(width: largestSide * f, height: largestSide) // vertical image
+            return CGSize(width: ceil(largestSide * f), height: largestSide) // vertical image
         }
     }
     

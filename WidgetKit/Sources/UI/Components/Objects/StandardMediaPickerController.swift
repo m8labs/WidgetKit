@@ -90,6 +90,8 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     
     @objc public var cancelOptionTitle = NSLocalizedString("Cancel", comment: "")
     
+    public var picked: (() -> Void)?
+    
     public func pick(with sourceType: UIImagePickerController.SourceType) {
         let picker = UIImagePickerController()
         picker.delegate = self
@@ -128,7 +130,7 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String: Any]) {
         pickerResult = MediaPickerResult(info: info)
-        picker.dismiss(animated: true)
+        picker.dismiss(animated: true, completion: picked)
     }
     
     public func resetSelection() {

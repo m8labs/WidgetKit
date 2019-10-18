@@ -369,20 +369,38 @@ extension TableDisplayController {
 
 open class ContentTableViewCell: UITableViewCell, ContentDisplayProtocol {
     
-    @objc var detailSegue: String?
-    @objc var detailKeyPath: String?
-    @objc var detailActionName: String?
+    @objc public var detailSegue: String?
+    @objc public var detailKeyPath: String?
+    @objc public var detailSegueDelay = 0.0
+    @objc public var performDetailSegueOnPresenter = false
     
+    @objc public var detailActionName: String?
     @objc lazy var detailActionController = ActionController()
     
+    private var viewController: ContentViewController {
+        guard let vc = viewController() as? ContentViewController else {
+            preconditionFailure("Invalid view controller type: \(ContentViewController.self) needed.")
+        }
+        return vc
+    }
+    
     fileprivate func performDetailSegueWith(_ masterObject: NSObject) {
-        guard let detailSegue = detailSegue, let detailKeyPath = detailKeyPath, let vc = viewController() as? ContentViewController else { return }
+        guard let detailSegue = detailSegue, let detailKeyPath = detailKeyPath else { return }
         if let detailObject = masterObject.value(forKeyPath: detailKeyPath) {
-            vc.performSegue(withIdentifier: detailSegue, sender: ContentWrapper(content: detailObject))
-        } else if detailActionName != nil { // detailObject doesn't exist yet, so create it, if detailActionName != nil
-            detailActionController.viewController = vc
+            if performDetailSegueOnPresenter, let presenter = viewController.previousViewController {
+                viewController.close()
+                after(detailSegueDelay) {
+                    presenter.performSegue(withIdentifier: detailSegue, sender: ContentWrapper(content: detailObject))
+                }
+            } else {
+                viewController.performSegue(withIdentifier: detailSegue, sender: ContentWrapper(content: detailObject))
+            }
+        } else if let detailActionName = self.detailActionName { // detailObject doesn't exist yet, so create it, if detailActionName != nil
+            detailActionController.viewController = viewController
             detailActionController.actionName = detailActionName
             detailActionController.status.successSegue = detailSegue
+            detailActionController.status.successSegueDelay = detailSegueDelay
+            detailActionController.status.closeOnSuccess = performDetailSegueOnPresenter
             detailActionController.performAction(with: masterObject)
         }
     }

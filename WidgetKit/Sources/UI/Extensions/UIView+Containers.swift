@@ -94,3 +94,19 @@ extension UICollectionView {
         return [backgroundView].compactMap { $0 }
     }
 }
+
+public extension UIViewController {
+    
+    var previousViewController: UIViewController? {
+        if presentingViewController != nil {
+            if let navigationController = self.presentingViewController as? UINavigationController {
+                return navigationController.viewControllers.last
+            } else {
+                return presentingViewController
+            }
+        } else if let navigationController = self.navigationController, let index = navigationController.viewControllers.index(of: self) {
+            return index > 0 ? navigationController.viewControllers[index - 1] : nil
+        }
+        return nil
+    }
+}

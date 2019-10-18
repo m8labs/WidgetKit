@@ -58,8 +58,14 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     @objc public var successSegueDelay = 0.0
     @objc public var successSegueKeyPath: String?
     
-    func performSegue(_ segue: String, with object: Any) {
-        viewController?.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
+    @objc public var closeOnSuccess = false
+    
+    func performSegue(_ segue: String, with object: Any, presenter: UIViewController? = nil) {
+        if let presenter = presenter {
+            presenter.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
+        } else {
+            viewController?.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
+        }
     }
     
     public func setupObservers() {
@@ -89,18 +95,19 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: n.valueFromUserInfo, error: nil)
                     if let segue = this.successSegue, let masterObject = n.valueFromUserInfo as? NSObject {
+                        var targetObject = masterObject
                         if let keyPath = this.successSegueKeyPath {
-                            if let object = masterObject.value(forKeyPath: keyPath) {
-                                after(this.successSegueDelay) {
-                                    this.performSegue(segue, with: object)
-                                }
-                            } else {
-                                print("Object was not found by key path '\(type(of: masterObject)).\(keyPath)'")
+                            guard let object = masterObject.value(forKeyPath: keyPath) as? NSObject else {
+                                return print("Object was not found under key path '\(type(of: masterObject)).\(keyPath)'")
                             }
-                        } else {
-                            after(this.successSegueDelay) {
-                                this.performSegue(segue, with: masterObject)
-                            }
+                            targetObject = object
+                        }
+                        let presenter = this.closeOnSuccess ? this.viewController?.previousViewController : this.viewController
+                        after(this.successSegueDelay) {
+                            this.performSegue(segue, with: targetObject, presenter: presenter)
+                        }
+                        if this.closeOnSuccess {
+                            this.viewController.close()
                         }
                     }
                 }

@@ -23,13 +23,25 @@
 
 import UIKit
 
-extension UIViewController {
+public extension UIViewController {
+    
+    func close() {
+        if presentingViewController != nil {
+            dismiss(animated: true)
+        } else {
+            navigationController?.popViewController(animated: true)
+        }
+    }
+    
+    @IBAction func closeAction(_ sender: Any?) {
+        close()
+    }
     
     @IBAction func dismissAction(_ sender: Any?) {
-        self.dismiss(animated: true)
+        dismiss(animated: true)
     }
     
     @IBAction func backAction(_ sender: Any?) {
-        self.navigationController?.popViewController(animated: true)
+        navigationController?.popViewController(animated: true)
     }
 }

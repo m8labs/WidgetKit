@@ -72,11 +72,7 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     
     @objc public private(set) var pickerResult: MediaPickerResult? {
         didSet {
-            if let assetView = imageView as? PHAssetView {
-                assetView.asset = pickerResult?.asset
-            } else {
-                imageView?.image = pickerResult?.currentImage
-            }
+            refreshImageView()
         }
     }
     
@@ -90,12 +86,13 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     
     @objc public var cancelOptionTitle = NSLocalizedString("Cancel", comment: "")
     
-    public var picked: (() -> Void)?
+    public var finished: (() -> Void)?
     
     public func pick(with sourceType: UIImagePickerController.SourceType) {
         let picker = UIImagePickerController()
         picker.delegate = self
         picker.sourceType = sourceType
+        picker.videoQuality = .typeIFrame1280x720
         if !imagesOnly {
             picker.mediaTypes = UIImagePickerController.availableMediaTypes(for: .photoLibrary) ?? []
         }
@@ -130,11 +127,53 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String: Any]) {
         pickerResult = MediaPickerResult(info: info)
-        picker.dismiss(animated: true, completion: picked)
+        if pickerResult!.asset == nil && pickerResult!.isMovie {
+            var assetRequest:PHAssetCreationRequest? = nil
+            var assetPlaceholder:PHObjectPlaceholder? = nil
+            PHPhotoLibrary.shared().performChanges({
+                assetRequest = PHAssetCreationRequest.forAsset()
+                assetPlaceholder = assetRequest!.placeholderForCreatedAsset
+                let opts = PHAssetResourceCreationOptions()
+                opts.shouldMoveFile = true
+                assetRequest!.addResource(with: PHAssetResourceType.video, fileURL: self.pickerResult!.mediaUrl!, options: opts)
+            }) { saved, error in
+                let asset = assetPlaceholder!.asset
+                async {
+                    var info = info
+                    if saved {
+                        info["UIImagePickerControllerPHAsset"] = asset
+                    }
+                    self.pickerResult = MediaPickerResult(info: info)
+                    picker.dismiss(animated: true) { self.finished?() }
+                }
+            }
+        } else {
+            picker.dismiss(animated: true) { self.finished?() }
+        }
+    }
+    
+    public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true) { self.finished?() }
     }
     
     public func resetSelection() {
         pickerResult = nil
+    }
+    
+    private func refreshImageView() {
+        if let assetView = imageView as? PHAssetView, let asset = pickerResult?.asset, asset.mediaType == .video {
+            assetView.asset = pickerResult?.asset
+        } else {
+            imageView?.image = pickerResult?.currentImage
+        }
+    }
+}
+
+extension PHObjectPlaceholder {
+    
+    var asset: PHAsset? {
+        let result = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
+        return result.firstObject
     }
 }
 

@@ -107,7 +107,13 @@ open class ContentViewController: UIViewController, ContentDisplayProtocol, Obse
     }
     
     open override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        let source = (sender as? ContentAwareProtocol) ?? (sender as? UIView)?.contentContainer()
+        var source = sender as? ContentAwareProtocol
+        if source == nil {
+            source = (sender as? UIView)?.contentContainer()
+        }
+        if source == nil {
+            source = ((sender as? UIBarButtonItem)?.value(forKey: "view") as? UIView)?.contentContainer()
+        }
         let destination = (segue.destination as? UINavigationController)?.topViewController ?? segue.destination
         guard let content = source?.content, let target = destination as? ContentViewController, target.deriveSegueContent else { return }
         target.storyboard?.widget = widget
@@ -138,6 +144,7 @@ extension UIViewController {
                 elements.insert(element!)
             }
         }
+        addElement(navigationItem)
         if let titleView = navigationItem.titleView {
             addElement(titleView)
             titleView.allSubviews { view in

@@ -124,6 +124,8 @@ class Binding: Evaluation {
     var sourceKeyPath: String?
     var observable: NSObject?
     
+    var order = 0
+    
     private var _active = false
     
     @discardableResult
@@ -193,6 +195,7 @@ public class ObjectAssistant: NSObject {
     
     private(set) var evals = [String: Evaluation]()
     private(set) var bindings = [String: Binding]()
+    private(set) var orderedBindings = [Binding]()
     
     @objc public var identifier: String?
     @objc public var name: String?
@@ -211,7 +214,7 @@ public class ObjectAssistant: NSObject {
     @discardableResult
     func setupObject(using source: NSObject, bind: Bool = false) -> [(binding: NSObject, target: NSObject, source: NSObject, keyPath: String, value: Any?)] {
         var info = [(binding: NSObject, target: NSObject, source: NSObject, keyPath: String, value: Any?)]()
-        bindings.forEach { key, binding in
+        orderedBindings.forEach { binding in
             binding.unbind()
             binding.target = self.object
             let value = bind ? binding.bind(to: source) : binding.assign(from: source)
@@ -280,6 +283,13 @@ public class ObjectAssistant: NSObject {
         }
         if let v = dictionary[BindingOption.nullPlaceholder.rawValue] as? String {
             binding.placeholder = NSLocalizedString(v, comment: "")
+        }
+        if let order = (dictionary["order"] as? Int) {
+            binding.order = order
+            orderedBindings.append(binding)
+            orderedBindings.sort { $0.order < $1.order }
+        } else {
+            orderedBindings.append(binding)
         }
         bindings[binding.targetKeyPath] = binding
         return binding

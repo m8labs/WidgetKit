@@ -25,7 +25,7 @@ import UIKit
 
 protocol ActionStatusControllerDelegate {
     
-    func statusChanged(_ status: ActionStatusController, args: ActionArgs?, result: Any?, error: Error?) -> Bool
+    func statusChanged(_ status: ActionStatusController, args: ActionArgs?, result: Any?, error: Error?)
 }
 
 enum ActionStatus {
@@ -45,7 +45,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     @objc public var isSuccess: Bool { return statusValue == .isSuccess }
     @objc public var isFailure: Bool { return statusValue == .isFailure }
     
-    @objc public var actionName: String?
+    @objc public var actionName: String!
     @objc public var errorTitle: String?
     @objc public var errorMessage: String?
     
@@ -69,29 +69,33 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     }
     
     public func setupObservers() {
-        guard let action = self.actionName ?? owner?.resolvedActionName else {
-            return print("'actionName' was not set to \(self)!")
+        guard let actionName = self.actionName ?? owner?.resolvedActionName else {
+            preconditionFailure("actionName for \(self) can't be resolved.")
         }
         observers = [
-            action.notification.onStart.subscribe(to: owner) { [weak self] n in
+            actionName.notification.onStart.subscribe(to: owner) { [weak self] n in
                 if let this = self {
                     this.statusValue = .inProgress
+                    (this.owner?.sender as? UIButton)?.isEnabled = false
+                    this.owner?.activityIndicator?.startAnimating()
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: nil, error: nil)
                 }
             },
-            action.notification.onReady.subscribe(to: owner) { [weak self] n in
+            actionName.notification.onReady.subscribe(to: owner) { [weak self] n in
                 if let this = self {
-                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.valueFromUserInfo, error: nil, sender: this)
+                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(actionName, result: n.valueFromUserInfo, error: nil, sender: this)
                     this.statusValue = .isReady
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: n.valueFromUserInfo, error: nil)
                 }
             },
-            action.notification.onSuccess.subscribe(to: owner) { [weak self] n in
+            actionName.notification.onSuccess.subscribe(to: owner) { [weak self] n in
                 if let this = self {
-                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.valueFromUserInfo, error: nil, sender: this)
+                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(actionName, result: n.valueFromUserInfo, error: nil, sender: this)
                     this.statusValue = .isSuccess
+                    (this.owner?.sender as? UIButton)?.isEnabled = true
+                    this.owner?.activityIndicator?.stopAnimating()
                     this.viewController?.refresh(elements: this.elements)
                     this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: n.valueFromUserInfo, error: nil)
                     if let segue = this.successSegue, let masterObject = n.valueFromUserInfo as? NSObject {
@@ -107,23 +111,24 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                             this.performSegue(segue, with: targetObject, presenter: presenter)
                         }
                         if this.closeOnSuccess {
-                            this.viewController.close()
+                            this.viewController?.close()
                         }
                     }
                 }
             },
-            action.notification.onError.subscribe(to: owner) { [weak self] n in
+            actionName.notification.onError.subscribe(to: owner) { [weak self] n in
                 if let this = self {
-                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(this.actionName!, result: n.valueFromUserInfo, error: n.errorFromUserInfo, sender: this)
+                    (this.viewController as? SchemeDiagnosticsProtocol)?.afterAction?(actionName, result: n.valueFromUserInfo, error: n.errorFromUserInfo, sender: this)
                     this.statusValue = .isFailure
+                    (this.owner?.sender as? UIButton)?.isEnabled = true
+                    this.owner?.activityIndicator?.stopAnimating()
                     this.viewController?.refresh(elements: this.elements)
                     if let error = n.errorFromUserInfo {
-                        if this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: nil, error: error) ?? true {
-                            if this.needAuthErrorCodes.contains((error as NSError).code), let segue = this.needAuthSegue {
-                                this.viewController?.performSegue(withIdentifier: segue, sender: this)
-                            } else {
-                                this.viewController?.handleError(error, sender: this)
-                            }
+                        this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: nil, error: error)
+                        if this.needAuthErrorCodes.contains((error as NSError).code), let segue = this.needAuthSegue {
+                            this.viewController?.performSegue(withIdentifier: segue, sender: this)
+                        } else {
+                            this.viewController?.handleError(error, sender: this)
                         }
                     }
                 }
@@ -136,9 +141,8 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
         setupObservers()
     }
     
-    public convenience init(owner: ActionController, actionName: String? = nil) {
+    public convenience init(owner: ActionController) {
         self.init()
-        self.actionName = actionName
         self.owner = owner
         self.viewController = owner.viewController
         setup()

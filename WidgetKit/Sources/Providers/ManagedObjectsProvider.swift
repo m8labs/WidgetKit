@@ -51,7 +51,7 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
     }
     
     private func predicateFromString(_ format: String) -> NSPredicate {
-        guard let content = viewController.content else { return NSPredicate(format: format) }
+        guard let content = viewController?.content else { return NSPredicate(format: format) }
         return NSPredicate(format: format).withSubstitutionVariables(["content": content])
     }
     

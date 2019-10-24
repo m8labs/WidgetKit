@@ -153,12 +153,12 @@ extension SearchActionController: UISearchBarDelegate {
     }
     
     public func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
-        viewController.navigationController?.setNavigationBarHidden(true, animated: true)
+        viewController?.navigationController?.setNavigationBarHidden(true, animated: true)
         searchBar.setShowsCancelButton(true, animated: true)
     }
     
     public func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-        viewController.navigationController?.setNavigationBarHidden(false, animated: true)
+        viewController?.navigationController?.setNavigationBarHidden(false, animated: true)
         searchBar.setShowsCancelButton(false, animated: true)
     }
     

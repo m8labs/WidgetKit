@@ -78,7 +78,7 @@ open class CollectionDisplayController: BaseDisplayController {
     
     open func configureCell(_ cell: ContentCollectionViewCell, object: Any, indexPath: IndexPath) {
         cell.widget = widget
-        cell.scheme = viewController.scheme
+        cell.scheme = viewController?.scheme
         cell.content = object
     }
     
@@ -101,7 +101,7 @@ open class CollectionDisplayController: BaseDisplayController {
     
     open override func prepare() -> [CustomIBObject] {
         let prepared = super.prepare()
-        vars = ObjectsDictionaryProxy(copy: viewController.vars)
+        vars = ObjectsDictionaryProxy(copy: viewController!.vars)
         return prepared
     }
 }
@@ -165,8 +165,8 @@ extension CollectionDisplayController: UICollectionViewDelegate {
     open func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell else { return }
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
-        if performSegueForCells > 0 {
-            viewController.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
+        if performSegueForCells > 0 && cell.reuseIdentifier != nil {
+            viewController?.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
         } else {
             if handleSelection {
                 handleSelectionForCell(cell, object: object, at: indexPath)

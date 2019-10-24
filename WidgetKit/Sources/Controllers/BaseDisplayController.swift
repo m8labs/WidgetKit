@@ -68,7 +68,7 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
     }
     
     open func renderContent(from source: ContentProviderProtocol? = nil) {
-        viewController.refresh(elements: elements)
+        viewController?.refresh(elements: elements)
     }
     
     open override func setup() {
@@ -89,6 +89,6 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
 open class ContentDisplayController: BaseDisplayController {
     
     open override func renderContent(from source: ContentProviderProtocol? = nil) {
-        viewController.content = source?.value
+        viewController?.content = source?.value
     }
 }

@@ -145,7 +145,7 @@ open class StandardServiceProvider: ServiceProvider {
             return print("Unable to compose request for action '\(action)' with object '\(String(describing: args))'")
         }
         before(action: action, request: request!)
-        action.notification.onStart.post(object: sender)
+        action.notification.onStart.post(object: sender, userInfo: args == nil ? nil : [Notification.argsKey: args!])
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
         requests[requestID] = SessionManager.default.request(request!)
             .validate { request, response, data in
@@ -226,10 +226,15 @@ open class StandardServiceProvider: ServiceProvider {
                     } else if let data = stringValue.data(using: .utf8) {
                         formData.append(data, withName: name)
                     }
+                } else if let image = value as? UIImage {
+                    guard let data = UIImageJPEGRepresentation(image, UIImage.defaultJPEGCompression) else {
+                        return print("Error: Failed to create data with UIImage parameter '\(name)'")
+                    }
+                    formData.append(data, withName: name)
                 }
             }
             self.before(action: action, request: request!)
-            action.notification.onStart.post(object: sender)
+            action.notification.onStart.post(object: sender, userInfo: args == nil ? nil : [Notification.argsKey: args!])
         }
         SessionManager.default.upload(multipartFormData: fillData, with: request!, encodingCompletion: { encodingResult in
             switch encodingResult {

@@ -32,6 +32,13 @@ public class PHAssetView: UIImageView {
     
     @IBOutlet var progressView: UIProgressView?
     
+    @objc public var largestSideInPixels = 0
+    
+    var targetSize: CGSize {
+        return largestSideInPixels > 0 ? CGSize(width: largestSideInPixels, height: largestSideInPixels) :
+            CGSize(width: DefaultSettings.shared.previewLargestSideInPixels, height: DefaultSettings.shared.previewLargestSideInPixels)
+    }
+    
     @objc public var asset: PHAsset? {
         didSet {
             guard let asset = self.asset else {
@@ -41,7 +48,7 @@ public class PHAssetView: UIImageView {
             if let image = PHAssetView.imageCache.object(forKey: asset.localIdentifier as NSString) {
                 self.image = image
             } else {
-                StandardMediaPickerController.requestImage(for: asset, targetSize: asset.previewSizeInPixels, progress: { [weak self] progress in
+                StandardMediaPickerController.requestImage(for: asset, targetSize: targetSize, progress: { [weak self] progress in
                     self?.progressView?.progress = progress
                 }) { [weak self] image, error in
                     guard asset == self?.asset else { return }
@@ -96,13 +103,13 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
         if !imagesOnly {
             picker.mediaTypes = UIImagePickerController.availableMediaTypes(for: .photoLibrary) ?? []
         }
-        viewController.present(picker, animated: true)
+        viewController?.present(picker, animated: true)
     }
     
     public override func performAction(with object: Any? = nil) {
         let perform = {
             if self.showOptions && UIImagePickerController.isSourceTypeAvailable(.camera) {
-                self.viewController.showActionSheet(message: nil, options: [
+                self.viewController?.showActionSheet(message: nil, options: [
                     (self.cameraOptionTitle,  { [weak self] in self?.pick(with: .camera) }),
                     (self.libraryOptionTitle, { [weak self] in self?.pick(with: .photoLibrary) }),
                     (self.cancelOptionTitle,  nil)])
@@ -111,14 +118,14 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
             }
         }
         let showError = {
-            self.viewController.showAlert(message: NSLocalizedString("Photo access was not granted by the user.", comment: ""))
+            self.viewController?.showAlert(message: NSLocalizedString("Photo access was not granted by the user.", comment: ""))
         }
         if PHPhotoLibrary.authorizationStatus() == .authorized {
             perform()
         } else {
             PHPhotoLibrary.requestAuthorization { status in
                 asyncMain {
-                    guard status == .authorized else { return showError() }
+                    guard status == .authorized else { showError(); return }
                     perform()
                 }
             }
@@ -161,8 +168,8 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     }
     
     private func refreshImageView() {
-        if let assetView = imageView as? PHAssetView, let asset = pickerResult?.asset, asset.mediaType == .video {
-            assetView.asset = pickerResult?.asset
+        if let assetView = imageView as? PHAssetView, let asset = pickerResult?.asset {
+            assetView.asset = asset
         } else {
             imageView?.image = pickerResult?.currentImage
         }

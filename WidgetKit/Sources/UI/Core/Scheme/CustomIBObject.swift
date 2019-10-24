@@ -27,7 +27,7 @@ open class CustomIBObject: NSObject {
     
     @objc public var alias: String?
     
-    public internal(set) weak var viewController: ContentViewController!
+    public internal(set) weak var viewController: ContentViewController?
     
     @IBOutlet public var dependency: CustomIBObject? {
         willSet {
@@ -38,15 +38,15 @@ open class CustomIBObject: NSObject {
     }
     
     public var bundle: Bundle {
-        return viewController.nibBundle ?? Bundle.main
+        return viewController?.nibBundle ?? Bundle.main
     }
     
     public var widget: Widget? {
-        return viewController.widget
+        return viewController?.widget
     }
     
     open func setup() {
-        //
+        guard viewController != nil else { preconditionFailure("Error: view controller for \(self) wasn't set.") }
     }
     
     @discardableResult

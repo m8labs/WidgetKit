@@ -122,12 +122,12 @@ open class TableDisplayController: BaseDisplayController {
     
     open func configureCell(_ cell: ContentTableViewCell, object: Any, indexPath: IndexPath) {
         cell.widget = widget
-        cell.scheme = viewController.scheme
+        cell.scheme = viewController?.scheme
         cell.content = object
     }
     
     open func configureSection(_ view: ContentDisplayView, object: Any?, section: Int) {
-        if view.scheme == nil, let scheme = viewController.scheme {
+        if view.scheme == nil, let scheme = viewController?.scheme {
             view.widget = widget
             view.setup(scheme: scheme)
         }
@@ -166,7 +166,7 @@ open class TableDisplayController: BaseDisplayController {
     
     open override func prepare() -> [CustomIBObject] {
         let prepared = super.prepare()
-        vars = ObjectsDictionaryProxy(copy: viewController.vars)
+        vars = ObjectsDictionaryProxy(copy: viewController!.vars)
         return prepared
     }
 }
@@ -231,8 +231,8 @@ extension TableDisplayController: UITableViewDelegate {
         if cell.detailSegue != nil {
             cell.performDetailSegueWith(object)
         }
-        if performSegueForCells > 0 {
-            viewController.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
+        if performSegueForCells > 0 && cell.reuseIdentifier != nil {
+            viewController?.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
         } else {
             if handleSelection {
                 handleSelectionForCell(cell, object: object, at: indexPath)

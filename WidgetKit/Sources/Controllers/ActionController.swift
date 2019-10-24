@@ -39,10 +39,11 @@ open class ActionController: CustomIBObject {
     static let targetSelectorSignatureFormat = "%@:sender:"
     
     @IBOutlet public var target: NSObject?
-    @IBOutlet public weak var sender: NSObject?
-    @IBOutlet public weak var cancelButton: UIButton?
-    @IBOutlet public weak var form: ContentFormProtocol?
-    @IBOutlet public weak var serviceProvider: ServiceProvider?
+    @IBOutlet public var sender: NSObject?
+    @IBOutlet public var cancelButton: UIButton?
+    @IBOutlet public var form: ContentFormProtocol?
+    @IBOutlet public var serviceProvider: ServiceProvider?
+    @IBOutlet public var activityIndicator: UIActivityIndicatorView?
     @IBOutlet public weak var nextActionController: ActionController?
     
     @objc public var actionName: String!
@@ -58,7 +59,7 @@ open class ActionController: CustomIBObject {
     }
     
     @objc open var content: Any? {
-        return viewController.content
+        return viewController?.content
     }
     
     var predicate: NSPredicate? {
@@ -67,11 +68,14 @@ open class ActionController: CustomIBObject {
     }
     
     var predicateValue: Bool {
-        return predicate?.evaluate(with: viewController.vars) ?? true
+        return predicate?.evaluate(with: viewController?.vars) ?? true
     }
     
-    var resolvedActionName: String? {
-        return predicateValue ? actionName : elseActionName
+    var resolvedActionName: String {
+        guard let actionName = predicateValue ? self.actionName : self.elseActionName else {
+            preconditionFailure("actionName for \(self) can't be resolved.")
+        }
+        return actionName
     }
     
     var resolvedServiceProvider: ServiceProvider {
@@ -86,26 +90,22 @@ open class ActionController: CustomIBObject {
     }
     
     var targetSelector: Selector? {
-        guard let resolvedActionName = resolvedActionName else { return nil }
         let selector = Selector(String(format: ActionController.targetSelectorSignatureFormat, resolvedActionName))
         return selector
     }
     
     var cancelSelector: Selector? {
-        guard let resolvedActionName = resolvedActionName else { return nil }
         let selector = Selector("cancel" + String(format: ActionController.targetSelectorSignatureFormat, resolvedActionName).capitalized)
         return selector
     }
     
     func performServiceAction(with object: Any?) {
-        guard let actionName = resolvedActionName else {
-            return print("Action for the \(self) was resolved to nil.")
-        }
+        let actionName = resolvedActionName
         let service = resolvedServiceProvider
-        status.setupObservers()
         let args = ActionArgs(content: content, params: object ?? params)
         (viewController as? SchemeDiagnosticsProtocol)?.beforeAction?(actionName, content: args, sender: self)
         let selector = targetSelector
+        status.setupObservers()
         if service.responds(to: selector) {
             service.perform(selector, with: args, with: self)
         } else {
@@ -114,16 +114,13 @@ open class ActionController: CustomIBObject {
     }
     
     func cancelServiceAction(with object: Any?) {
-        guard viewController != nil else {
-            return print("Warning: view controller for this action doesn't exist.")
-        }
         let service = resolvedServiceProvider
         let selector = cancelSelector
         let args = ActionArgs(content: content, params: object ?? params)
         if service.responds(to: selector) {
             service.perform(selector, with: args)
-        } else if let actionName = resolvedActionName {
-            service.cancelRequest(for: actionName, with: args, from: self)
+        } else {
+            service.cancelRequest(for: resolvedActionName, with: args, from: self)
         }
     }
     
@@ -141,11 +138,9 @@ open class ActionController: CustomIBObject {
     }
     
     @objc open func performAction(with object: Any? = nil) {
-        guard viewController != nil else {
-            return print("Warning: view controller for this action doesn't exist.")
-        }
+        let actionName = resolvedActionName
         guard form == nil || form!.formValue != nil else {
-            return print("Warning: Form exists but value was nil - aborting action \(actionName!).")
+            return print("Warning: Form exists but value was nil - aborting action \(actionName).")
         }
         after(actionDelay) {
             self._performAction(with: object)
@@ -165,24 +160,22 @@ open class ActionController: CustomIBObject {
 
 extension ActionController {
     
-    @IBAction func defaultHandler(_ sender: Any?) {
+    @objc func defaultHandler(_ sender: Any?) {
         performAction()
     }
 }
 
 extension ActionController: ActionStatusControllerDelegate {
     
-    @discardableResult
-    @objc open func statusChanged(_ status: ActionStatusController, args: ActionArgs?, result: Any?, error: Error?) -> Bool {
-        guard status.isSuccess else { return true }
+    @objc open func statusChanged(_ status: ActionStatusController, args: ActionArgs?, result: Any?, error: Error?) {
+        guard status.isSuccess else { return }
         nextActionController?.performAction(with: result ?? args?.params) // if result wasn't mean to exist, just propogate initial params further to the chain
-        return true
     }
 }
 
 open class ButtonActionController: ActionController {
     
-    var button: UIButton? {
+    public var button: UIButton? {
         return sender as? UIButton
     }
     
@@ -194,7 +187,7 @@ open class ButtonActionController: ActionController {
 
 open class BarButtonActionController: ActionController {
     
-    var barButtonItem: UIBarButtonItem? {
+    public var barButtonItem: UIBarButtonItem? {
         return sender as? UIBarButtonItem
     }
     

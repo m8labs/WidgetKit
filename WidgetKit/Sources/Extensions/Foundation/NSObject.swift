@@ -47,3 +47,14 @@ extension NSObject {
         }
     }
 }
+
+extension Error {
+    
+    public var localizedFailureReason: String? {
+        (self as NSError).localizedFailureReason
+    }
+    
+    public var userInfo: [String: Any] {
+        (self as NSError).userInfo
+    }
+}

@@ -49,6 +49,8 @@ open class ContentViewController: UIViewController, ContentDisplayProtocol, Obse
     
     public var observers: [Any] = []
     
+    @objc public var showDefaultErrorMessages = true
+    
     @objc var useDynamicBindings = false
     
     open func setupObservers() { }
@@ -124,7 +126,9 @@ open class ContentViewController: UIViewController, ContentDisplayProtocol, Obse
 extension ContentViewController {
     
     @objc open dynamic func handleError(_ error: Error, sender: ActionStatusController) {
-        if let message = sender.errorMessage {
+        if showDefaultErrorMessages {
+            showAlert(title: NSLocalizedString("Error", comment: ""), message: "Action '\(sender.actionName ?? "<unknown>")'\n\n\(error.userInfo)")
+        } else if let message = sender.errorMessage {
             let title = sender.errorTitle ?? NSLocalizedString("Error", comment: "")
             showAlert(title: title, message: "\(message)\n\n\(error.localizedDescription)")
         }

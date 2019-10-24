@@ -49,3 +49,34 @@ extension UIView {
         }
     }
 }
+
+public extension UIImage {
+    
+    convenience init?(color: UIColor, size: CGSize = CGSize(width: 1, height: 1)) {
+        let rect = CGRect(origin: .zero, size: size)
+        UIGraphicsBeginImageContextWithOptions(rect.size, false, 0.0)
+        color.setFill()
+        UIRectFill(rect)
+        let image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        guard let cgImage = image?.cgImage else { return nil }
+        self.init(cgImage: cgImage)
+    }
+}
+
+public extension UIButton {
+    
+    @objc var normalBackgroundColor: UIColor? {
+        get { return nil }
+        set { setBackgroundColor(newValue, for: .normal) }
+    }
+    
+    @objc var highlightedBackgroundColor: UIColor? {
+        get { return nil }
+        set { setBackgroundColor(newValue, for: .highlighted) }
+    }
+    
+    func setBackgroundColor(_ color: UIColor?, for state: UIControl.State) {
+        setBackgroundImage(color == nil ? nil : UIImage(color: color!), for: state)
+    }
+}

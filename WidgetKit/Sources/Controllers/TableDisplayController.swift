@@ -321,6 +321,22 @@ extension TableDisplayController: UITableViewDelegate {
         let count = contentProvider.itemsCountInSection(section)
         return cell == nil || count == 0 ? 0 : tableView.sectionHeaderHeight
     }
+    
+    @available(iOS 13.0, *)
+    @objc(tableView:contextMenuConfigurationForRowAtIndexPath:point:)
+    func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        guard let object = contentProvider.item(at: indexPath) as? NSObject else { return nil }
+        guard let viewController = self.viewController, let items = viewController.previewMenuItemsForObject(object) else { return nil }
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { suggestedActions in
+            var actions = [UIAction]()
+            for item in items {
+                actions.append(UIAction(title: item.title, image: item.image, attributes: item.isDestructive ? .destructive : []) { _ in
+                    item.handler()
+                })
+            }
+            return UIMenu(title: viewController.previewMenuTitle, children: actions)
+        }
+    }
 }
 
 // MARK: - Layout

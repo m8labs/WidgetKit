@@ -121,6 +121,25 @@ open class ContentViewController: UIViewController, ContentDisplayProtocol, Obse
         target.storyboard?.widget = widget
         target.content = content
     }
+    
+    open var previewMenuTitle: String {
+        return ""
+    }
+    
+    open func previewMenuItemsForObject(_ object: Any?) -> [(title: String, image: UIImage?, isDestructive: Bool, handler: (() -> Void))]? {
+        return nil
+    }
+    
+    override open var previewActionItems: [UIPreviewActionItem] {
+        guard let items = previewMenuItemsForObject(content) else { return [] }
+        var actions = [UIPreviewAction]()
+        for item in items {
+            actions.append(UIPreviewAction(title: item.title, style: item.isDestructive ? .destructive : .default) { _,_ in
+                item.handler()
+            })
+        }
+        return actions
+    }
 }
 
 extension ContentViewController {

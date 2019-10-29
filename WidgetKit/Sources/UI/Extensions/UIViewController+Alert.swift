@@ -49,11 +49,11 @@ extension UIViewController {
         }
     }
     
-    public func showActionSheet(title: String? = nil, message: String?, options: [(title: String, handler: (() -> Void)?)]) {
+    public func showActionSheet(title: String? = nil, message: String?, options: [(title: String, isDestructive: Bool, handler: (() -> Void)?)]) {
         let sheet = UIAlertController(title: title, message: message, preferredStyle: .actionSheet)
         options.forEach { option in
             if let handler = option.handler {
-                sheet.addAction(UIAlertAction(title: option.title, style: .default, handler: { _ in handler() }))
+                sheet.addAction(UIAlertAction(title: option.title, style: option.isDestructive ? .destructive : .default, handler: { _ in handler() }))
             } else {
                 sheet.addAction(UIAlertAction(title: option.title, style: .cancel, handler: nil))
             }
@@ -64,6 +64,10 @@ extension UIViewController {
 
 public func showAlert(title: String? = nil, message: String?, actions: [(title: String, handler: (() -> Void)?)]) {
     UIApplication.shared.keyWindow?.rootViewController?.showAlert(title: title, message: message, actions: actions)
+}
+
+public func showActionSheet(title: String? = nil, message: String?, actions: [(title: String, isDestructive: Bool, handler: (() -> Void)?)]) {
+    UIApplication.shared.keyWindow?.rootViewController?.showActionSheet(title: title, message: message, options: actions)
 }
 
 public func showAlert(title: String? = nil, message: String?, action: (title: String, cancelTitle: String, handler: (() -> Void)?)? = nil) {

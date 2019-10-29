@@ -110,9 +110,9 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
         let perform = {
             if self.showOptions && UIImagePickerController.isSourceTypeAvailable(.camera) {
                 self.viewController?.showActionSheet(message: nil, options: [
-                    (self.cameraOptionTitle,  { [weak self] in self?.pick(with: .camera) }),
-                    (self.libraryOptionTitle, { [weak self] in self?.pick(with: .photoLibrary) }),
-                    (self.cancelOptionTitle,  nil)])
+                    (self.cameraOptionTitle, false, { [weak self] in self?.pick(with: .camera) }),
+                    (self.libraryOptionTitle, false, { [weak self] in self?.pick(with: .photoLibrary) }),
+                    (self.cancelOptionTitle, false, nil)])
             } else {
                 self.pick(with: .photoLibrary)
             }

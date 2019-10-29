@@ -70,12 +70,7 @@ public extension NSManagedObject {
     }
     
     func delete() {
-        managedObjectContext?.delete(self)
-        do {
-            try managedObjectContext?.save()
-        } catch {
-            print(error)
-        }
+        NSPersistentContainer.default.deleteObject(self) { _ in }
     }
 }
 

@@ -177,6 +177,27 @@ public extension NSPersistentContainer {
         }
     }
     
+    func deleteObject(_ object: NSManagedObject, completion: @escaping (Error?)->Void) {
+        deleteObjects([object], completion: completion)
+    }
+    
+    func deleteObjects(_ objects: [NSManagedObject], completion: @escaping (Error?)->Void) {
+        enqueueBackgroundTask() { context in
+            do {
+                for object in objects {
+                    let contextObject = context.object(with: object.objectID)
+                    context.delete(contextObject)
+                }
+                try context.save()
+                self.viewContext.perform {
+                    completion(nil)
+                }
+            } catch {
+                self.viewContext.perform { completion(error) }
+            }
+        }
+    }
+    
     func clear(entities: [NSManagedObject.Type], completion: Completion? = nil) {
         let entityNames = entities.map { "\($0)" }
         clear(entityNames: entityNames, completion: completion)

@@ -79,27 +79,27 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
         }
     }
     
-    public override var sectionsCount: Int {
+    override public var sectionsCount: Int {
         return fetchedResultsController.sections?.count ?? 0
     }
     
-    public override func itemsCountInSection(_ section: Int) -> Int {
+    override public func itemsCountInSection(_ section: Int) -> Int {
         return fetchedResultsController.sections?[section].numberOfObjects ?? 0
     }
     
-    public override var allItems: [Any] {
+    override public var allItems: [Any] {
         return fetchedResultsController.fetchedObjects ?? []
     }
     
-    public override func item(at indexPath: IndexPath) -> Any? {
+    override public func item(at indexPath: IndexPath) -> Any? {
         return itemsCountInSection(indexPath.section) > 0 ? fetchedResultsController.object(at: indexPath) : nil
     }
     
-    public override func indexPath(for item: Any) -> IndexPath? {
+    override public func indexPath(for item: Any) -> IndexPath? {
         return fetchedResultsController.indexPath(forObject: item as! NSFetchRequestResult)
     }
     
-    public override func totalCount() -> Int {
+    override public var totalCount: Int {
         guard let sections = fetchedResultsController.sections else { return 0 }
         var count = 0
         for section in sections {
@@ -108,28 +108,11 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
         return count
     }
     
-    public override func firstIndexPath() -> IndexPath? {
-        guard let firstSection = fetchedResultsController.sections?.first else { return nil }
-        let count = firstSection.numberOfObjects
-        return count > 0 ? IndexPath.first : nil
-    }
-    
-    public override func lastIndexPath() -> IndexPath? {
-        guard let sections = fetchedResultsController.sections, let lastSection = sections.last else { return nil }
-        let count = lastSection.numberOfObjects
-        return count > 0 ? IndexPath(row: count - 1, section: sections.count - 1) : nil
-    }
-    
-    public override func reset() {
+    override public func reset() {
         _fetchedResultsController = nil
-        super.reset()
     }
     
-    public override func insertItem(_ item: Any, at indexPath: IndexPath) {
-        assert(false, "Inserting items directly is not supported for 'ManagedObjectsProvider'.")
-    }
-    
-    public override func fetch() {
+    override public func fetch() {
         var sortDescriptors = self.sortDescriptors
         if groupByField != nil && groupByField != "" {
             sortDescriptors.insert(NSSortDescriptor(key: groupByField!, ascending: sortAscending), at: 0)
@@ -171,23 +154,23 @@ extension ManagedObjectsProvider {
     
     public func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         if type == .insert, let newIndexPath = newIndexPath {
-            contentConsumer?.renderContent?(anObject, change: .insert, at: newIndexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .insert, at: newIndexPath, from: self)
         }
         else if type == .update, let indexPath = indexPath {
-            contentConsumer?.renderContent?(anObject, change: .update, at: indexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .update, at: indexPath, from: self)
         }
         else if type == .delete, let indexPath = indexPath {
-            contentConsumer?.renderContent?(anObject, change: .delete, at: indexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .delete, at: indexPath, from: self)
         }
         else if type == .move, let oldIndexPath = indexPath, let newIndexPath = newIndexPath, newIndexPath != oldIndexPath {
-            contentConsumer?.renderContent?(anObject, change: .delete, at: oldIndexPath, from: self)
-            contentConsumer?.renderContent?(anObject, change: .insert, at: newIndexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .delete, at: oldIndexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .insert, at: newIndexPath, from: self)
         }
     }
 }
 
-public class ManagedObjectsCollection: BaseContentProvider {
-    
+public class ManagedObjectsCollection: ItemsContentProvider {
+
     private var _provider = ManagedObjectsProvider()
     
     public override func fetch() {
@@ -199,7 +182,7 @@ public class ManagedObjectsCollection: BaseContentProvider {
         _provider.resultChainArgs = resultChainArgs
         _provider.predicateFormat = predicateFormat
         if let value = _provider.value {
-            items = value as? [Any] ?? [value]
+            items = [value as? [Any] ?? [value]]
         }
     }
 }

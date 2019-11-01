@@ -23,7 +23,6 @@
 
 import UIKit
 
-@objc
 public protocol ContentProviderProtocol: class {
     
     var contentConsumer: ContentConsumerProtocol? { get set }
@@ -50,19 +49,13 @@ public protocol ContentProviderProtocol: class {
     
     func itemsCountInSection(_ section: Int) -> Int
     
-    func totalCount() -> Int
+    var totalCount: Int { get }
     
-    var allItems: [Any]  { get }
+    var allItems: [Any] { get }
     
     var value: Any?  { get }
     
     func item(at indexPath: IndexPath) -> Any?
-    
-    func next(to indexPath: IndexPath) -> Any?
-    
-    func previous(to indexPath: IndexPath) -> Any?
-    
-    func items(at indexPaths: [IndexPath]) -> [Any]
     
     func indexPath(for item: Any) -> IndexPath?
     
@@ -70,36 +63,50 @@ public protocol ContentProviderProtocol: class {
     
     func last() -> Any?
     
-    func firstIndexPath() -> IndexPath?
-    
-    func lastIndexPath() -> IndexPath?
-    
-    func insertItem(_ item: Any, at indexPath: IndexPath)
-    
     func reset()
     
     func fetch()
 }
 
-open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
+extension ContentProviderProtocol {
     
-    var items = [Any]()
+    public var sortDescriptors: [NSSortDescriptor] {
+        var sortDescriptors = [NSSortDescriptor]()
+        if let sortByFields = self.sortByFields {
+            let sortDescriptorsStrings = sortByFields.components(separatedBy: ",").map({ $0.trimmingCharacters(in: CharacterSet.whitespaces) })
+            for fieldName: String in sortDescriptorsStrings {
+                sortDescriptors.append(NSSortDescriptor(key: fieldName, ascending: sortAscending))
+            }
+        }
+        return sortDescriptors
+    }
     
-    public weak var contentConsumer: ContentConsumerProtocol?
+    public var isEmpty: Bool {
+        return first() == nil
+    }
     
-    @objc public var masterKeyPath: String?
+    public func first() -> Any? {
+        return item(at: IndexPath.first)
+    }
+}
+
+open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
     
-    @objc public var sortByFields: String?
+    open var contentConsumer: ContentConsumerProtocol?
     
-    @objc public var sortAscending = true
+    @objc open var masterKeyPath: String?
     
-    @objc public var masterObject: NSObject? = nil { didSet { reset() } }
+    @objc open var sortByFields: String?
     
-    @objc public var predicateFormat: String? = nil { didSet { reset() } }
+    @objc open var sortAscending = true
     
-    @objc public var filterFormat: String?
+    @objc open var filterFormat: String?
+    
+    @objc open var predicateFormat: String? { didSet { fetch() } }
     
     @objc open var searchString: String? { didSet { fetch() } }
+    
+    open var masterObject: NSObject? { didSet { fetch() } }
     
     /// `resultChain` utilizes `NSExpression` engine, which is very powerful and can compete with
     /// objective-c/swift code with functionality. It's an array of `NSArray.wx_*` functions which
@@ -127,11 +134,11 @@ open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
     ///
     /// Keep in mind possible perfomance issues when using `NSExpression`.
     /// The order of functions in the `resultChain` can affect perfomance a lot.
-    @objc public var resultChain: [String]?         // f.e. ["wx_itemAt:", "valueForKeyPath:"]
+    @objc open var resultChain: [String]?         // f.e. ["wx_itemAt:", "valueForKeyPath:"]
     
-    @objc public var resultChainArgs: [String]?     // ["-1", "@distinctUnionOfObjects.self"]
+    @objc open var resultChainArgs: [String]?     // ["-1", "@distinctUnionOfObjects.self"]
     
-    @objc public var resultChainTxt: String? {      // f.e. "wx_itemAt:|valueForKeyPath:"
+    @objc open var resultChainTxt: String? {      // f.e. "wx_itemAt:|valueForKeyPath:"
         didSet {
             if let value = resultChainTxt {
                 resultChain = value.components(separatedBy: "|")
@@ -139,40 +146,12 @@ open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
         }
     }
     
-    @objc public var resultChainArgsTxt: String? {    // "-1|@distinctUnionOfObjects.self"
+    @objc open var resultChainArgsTxt: String? {    // "-1|@distinctUnionOfObjects.self"
         didSet {
             if let value = resultChainArgsTxt {
                 resultChainArgs = value.components(separatedBy: "|")
             }
         }
-    }
-    
-    public var sortDescriptors: [NSSortDescriptor] {
-        var sortDescriptors = [NSSortDescriptor]()
-        if let sortByFields = self.sortByFields {
-            let sortDescriptorsStrings = sortByFields.components(separatedBy: ",").map({ $0.trimmingCharacters(in: CharacterSet.whitespaces) })
-            for fieldName: String in sortDescriptorsStrings {
-                sortDescriptors.append(NSSortDescriptor(key: fieldName, ascending: sortAscending))
-            }
-        }
-        return sortDescriptors
-    }
-    
-    public func next(to indexPath: IndexPath) -> Any? {
-        return item(at:indexPath.next)
-    }
-    
-    public func previous(to indexPath: IndexPath) -> Any? {
-        guard let previous = indexPath.previous else { return nil }
-        return item(at:previous)
-    }
-    
-    public func items(at indexPaths: [IndexPath]) -> [Any] {
-        var result = [Any]()
-        for indexPath in indexPaths {
-            result.append(item(at: indexPath)!)
-        }
-        return result
     }
     
     private lazy var expressions: [NSExpression]? = {
@@ -188,10 +167,6 @@ open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
         return expressions
     }()
     
-    @objc open var isEmpty: Bool {
-        return first() == nil
-    }
-    
     @objc open var value: Any? {
         var some = allItems as Any?
         for expression in self.expressions ?? [] {
@@ -200,60 +175,40 @@ open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
         return some
     }
     
-    open var sectionsCount: Int {
-        return items.count > 0 ? 1 : 0
+    public func last() -> Any? {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
-    open func itemsCountInSection(_ section: Int) -> Int {
-        return items.count
+    public var sectionsCount: Int {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
-    @objc open func totalCount() -> Int {
-        return items.count
+    public func itemsCountInSection(_ section: Int) -> Int {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
-    open func item(at indexPath: IndexPath) -> Any? {
-        guard indexPath.section == 0, indexPath.item < items.count else { return nil }
-        return items[indexPath.item]
+    public var totalCount: Int {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
-    open func indexPath(for item: Any) -> IndexPath? {
-        return nil
+    public func item(at indexPath: IndexPath) -> Any? {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
-    @objc public func first() -> Any? {
-        guard let indexPath = firstIndexPath() else { return nil }
-        return item(at: indexPath)
+    public func indexPath(for item: Any) -> IndexPath? {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
-    @objc public func last() -> Any? {
-        guard let indexPath = lastIndexPath() else { return nil }
-        return item(at: indexPath)
+    public func reset() {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
-    public func firstIndexPath() -> IndexPath? {
-        return IndexPath.first
+    public var allItems: [Any] {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
-    open func lastIndexPath() -> IndexPath? {
-        return IndexPath(row: allItems.count - 1, section: 0)
-    }
-    
-    open func insertItem(_ item: Any, at indexPath: IndexPath = IndexPath.first) {
-        return items.insert(item, at: indexPath.item)
-    }
-    
-    open func reset() {
-        items.removeAll()
-        contentConsumer?.renderContent(from: self)
-    }
-    
-    open var allItems: [Any] {
-        return items
-    }
-    
-    open func fetch() {
-        //
+    public func fetch() {
+        preconditionFailure("Should be implemented in a successor class.")
     }
     
     open override func setup() {
@@ -271,18 +226,54 @@ open class BaseContentProvider: CustomIBObject, ContentProviderProtocol {
     }
 }
 
-public class ItemsCollection: BaseContentProvider {
+open class ItemsContentProvider: BaseContentProvider {
     
-    public override func fetch() {
+    open var items = [[Any]]()
+    
+    override open var sectionsCount: Int {
+        return items.count > 0 ? 1 : 0
+    }
+    
+    override open func itemsCountInSection(_ section: Int) -> Int {
+        guard section < items.count else { return 0 }
+        return items[section].count
+    }
+    
+    override open var totalCount: Int {
+        return items.reduce(0) { count, array in count + array.count }
+    }
+    
+    override open func item(at indexPath: IndexPath) -> Any? {
+        guard indexPath.section < items.count, indexPath.row < items[indexPath.section].count else { return nil }
+        return items[indexPath.section][indexPath.item]
+    }
+    
+    override open func reset() {
+        items.removeAll()
+        contentConsumer?.renderContent(from: self)
+    }
+    
+    override open var allItems: [Any] {
+        return items
+    }
+    
+    override open func fetch() {
+        contentConsumer?.renderContent(from: self)
+    }
+}
+
+public class ItemsCollection: ItemsContentProvider {
+    
+    override public func fetch() {
         guard let masterObject = self.masterObject, let masterKeyPath = self.masterKeyPath else { return }
         let value = masterObject.value(forKeyPath: masterKeyPath)
         if let items = ((value as? NSSet)?.allObjects ?? (value as? [Any])) as NSArray? {
             if let predicateFormat = self.predicateFormat {
                 let predicate = NSPredicate(format: predicateFormat)
                 let filtered = items.filtered(using: predicate) as NSArray
-                self.items = filtered.sortedArray(using: sortDescriptors)
+                self.items = [filtered.sortedArray(using: sortDescriptors)]
             } else {
-                self.items = items.sortedArray(using: sortDescriptors)
+                self.items = [items.sortedArray(using: sortDescriptors)]
             }
         }
     }
@@ -292,14 +283,6 @@ extension IndexPath {
     
     public static var first: IndexPath {
         return IndexPath(row: 0, section: 0)
-    }
-    
-    public var previous: IndexPath? {
-        return item > 0 ? IndexPath(item: item - 1, section: section) : nil
-    }
-    
-    public var next: IndexPath {
-        return IndexPath(item: item + 1, section: section)
     }
 }
 

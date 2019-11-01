@@ -36,7 +36,7 @@ open class CollectionCircleScrollController: CollectionPageScrollController {
 extension CollectionCircleScrollController {
     
     func setInitialContentOffset() {
-        let count = contentProvider.totalCount()
+        let count = contentProvider.totalCount
         collectionView?.contentOffset = CGPoint(x: (collectionView?.contentInset.left ?? 0) + CGFloat((circleScrollFactor / 2) * count) * itemSize.width, y: 0)
     }
 }

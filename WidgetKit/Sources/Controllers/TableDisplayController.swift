@@ -176,7 +176,7 @@ open class TableDisplayController: BaseDisplayController {
 extension TableDisplayController: UITableViewDataSource {
     
     open func numberOfSections(in tableView: UITableView) -> Int {
-        let count = contentProvider.totalCount()
+        let count = contentProvider.totalCount
         emptyDataView?.isHidden = count > 0
         return contentProvider.sectionsCount
     }

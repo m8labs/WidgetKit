@@ -23,7 +23,7 @@
 
 import Foundation
 
-public class JSONFileDataProvider: BaseContentProvider {
+public class JSONFileDataProvider: ItemsContentProvider {
     
     @objc public private(set) var fileName: String?
     
@@ -37,9 +37,9 @@ public class JSONFileDataProvider: BaseContentProvider {
                 let object = try JSONSerialization.jsonObject(with: data)
                 asyncMain {
                     if let arr = object as? [NSDictionary] {
-                        self.items = arr.map { return NSMutableDictionary(dictionary: $0) }
+                        self.items = [arr.map { return NSMutableDictionary(dictionary: $0) }]
                     } else if let dict = object as? NSDictionary {
-                        self.items = [NSMutableDictionary(dictionary: dict)]
+                        self.items = [[NSMutableDictionary(dictionary: dict)]]
                     }
                     completion(nil)
                 }

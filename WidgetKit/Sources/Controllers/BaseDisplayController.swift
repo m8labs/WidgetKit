@@ -23,21 +23,28 @@
 
 import UIKit
 
-@objc
 public enum ContentChange: UInt {
     case insert, delete, update
 }
 
-@objc
 public protocol ContentConsumerProtocol: class {
     
-    @objc func renderContent(from source: ContentProviderProtocol?)
+    func renderContent(from source: ContentProviderProtocol?)
     
-    @objc optional func prepareRenderContent(from source: ContentProviderProtocol?)
+    func prepareRenderContent(from source: ContentProviderProtocol?)
     
-    @objc optional func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?)
+    func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?)
     
-    @objc optional func finalizeRenderContent(from source: ContentProviderProtocol?)
+    func finalizeRenderContent(from source: ContentProviderProtocol?)
+}
+
+public extension ContentConsumerProtocol {
+    
+    func prepareRenderContent(from source: ContentProviderProtocol?) { }
+    
+    func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?) { }
+    
+    func finalizeRenderContent(from source: ContentProviderProtocol?) { }
 }
 
 open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, ObserversStorageProtocol {

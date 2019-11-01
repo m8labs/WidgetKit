@@ -64,6 +64,8 @@ public class SearchActionController: ActionController {
     
     @objc public var searchOnReturn = true
     
+    @objc public var hideNavigationBar = true
+    
     @objc public var minimumTextLength = 1
     
     @objc public var filterThrottleInterval = 0.5
@@ -153,11 +155,13 @@ extension SearchActionController: UISearchBarDelegate {
     }
     
     public func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        guard hideNavigationBar else { return }
         viewController?.navigationController?.setNavigationBarHidden(true, animated: true)
         searchBar.setShowsCancelButton(true, animated: true)
     }
     
     public func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+        guard hideNavigationBar else { return }
         viewController?.navigationController?.setNavigationBarHidden(false, animated: true)
         searchBar.setShowsCancelButton(false, animated: true)
     }

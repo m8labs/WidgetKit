@@ -28,7 +28,7 @@ public enum ClearPolicy: String {
 }
 
 public enum RequestEncoding: String {
-    case json, url, plist
+    case json, url, body
 }
 
 extension TimeZone {

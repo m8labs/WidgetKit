@@ -126,28 +126,29 @@ open class StandardServiceProvider: ServiceProvider {
             return print("Unable to initiate request for action '\(action)' with object '\(String(describing: args))'")
         }
         var body = requestInfo.body
-        var request = prepareRequest(rawRequest, body: &body, for: action, from: sender)
-        if let parameters = body {
-            do {
-                switch configuration.encoding(for: action) {
-                case .url:
-                    request = try URLEncoding.httpBody.encode(rawRequest, with: parameters)
-                case .plist:
-                    request = try PropertyListEncoding.default.encode(rawRequest, with: parameters)
-                default:
-                    request = try JSONEncoding.default.encode(rawRequest, with: parameters)
-                }
-            } catch {
-                print(error)
+        var urlRequest = prepareRequest(rawRequest, body: &body, for: action, from: sender)
+        do {
+            switch configuration.encoding(for: action) {
+            case .url:
+                urlRequest = try URLEncoding.queryString.encode(rawRequest, with: body)
+            case .body:
+                urlRequest = try URLEncoding.httpBody.encode(rawRequest, with: body)
+            default:
+                urlRequest = try JSONEncoding.default.encode(rawRequest, with: body)
             }
+        } catch {
+            print(error)
         }
-        guard request != nil else {
+        guard urlRequest != nil else {
             return print("Unable to compose request for action '\(action)' with object '\(String(describing: args))'")
         }
-        before(action: action, request: request!)
+        if urlRequest!.value(forHTTPHeaderField: "Content-Type") == nil {
+            urlRequest!.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        }
+        before(action: action, request: urlRequest!)
         action.notification.onStart.post(object: sender, userInfo: args == nil ? nil : [Notification.argsKey: args!])
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
-        requests[requestID] = SessionManager.default.request(request!)
+        requests[requestID] = SessionManager.default.request(urlRequest!)
             .validate { request, response, data in
                 self.requests[requestID] = nil
                 self.after(action: action, request: request, response: response, data: data)

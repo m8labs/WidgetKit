@@ -146,10 +146,10 @@ extension ContentViewController {
     
     @objc open dynamic func handleError(_ error: Error, sender: ActionStatusController) {
         if showDefaultErrorMessages {
-            showAlert(title: NSLocalizedString("Error", comment: ""), message: "Action '\(sender.actionName ?? "<unknown>")'\n\n\(error.userInfo)")
+            showAlert(title: NSLocalizedString("Error", comment: ""), message: "Action '\(sender.resolvedActionName)'\n\n\(error.displayInfo)")
         } else if let message = sender.errorMessage {
             let title = sender.errorTitle ?? NSLocalizedString("Error", comment: "")
-            showAlert(title: title, message: "\(message)\n\n\(error.localizedDescription)")
+            showAlert(title: title, message: "\(message)\n\n\(error.displayInfo)")
         }
     }
 }

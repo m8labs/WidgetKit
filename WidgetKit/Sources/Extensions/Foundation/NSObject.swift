@@ -48,6 +48,8 @@ extension NSObject {
     }
 }
 
+public var WXCustomFailureReasonErrorKey = "reason"
+
 extension Error {
     
     public var localizedFailureReason: String? {
@@ -56,5 +58,13 @@ extension Error {
     
     public var userInfo: [String: Any] {
         (self as NSError).userInfo
+    }
+    
+    public var customFailureReason: String? {
+        userInfo[WXCustomFailureReasonErrorKey] as? String
+    }
+    
+    public var displayInfo: String {
+        customFailureReason ?? "\(localizedFailureReason ?? NSLocalizedString("Failure:", comment: ""))\n\n\(userInfo)"
     }
 }

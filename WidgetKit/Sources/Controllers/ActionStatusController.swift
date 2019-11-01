@@ -60,6 +60,13 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     
     @objc public var closeOnSuccess = false
     
+    public var resolvedActionName: String {
+        guard let actionName = self.actionName ?? owner?.resolvedActionName else {
+            preconditionFailure("actionName for \(self) can't be resolved.")
+        }
+        return actionName
+    }
+    
     func performSegue(_ segue: String, with object: Any, presenter: UIViewController? = nil) {
         if let presenter = presenter {
             presenter.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
@@ -69,9 +76,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
     }
     
     public func setupObservers() {
-        guard let actionName = self.actionName ?? owner?.resolvedActionName else {
-            preconditionFailure("actionName for \(self) can't be resolved.")
-        }
+        let actionName = resolvedActionName
         observers = [
             actionName.notification.onStart.subscribe(to: owner) { [weak self] n in
                 if let this = self {

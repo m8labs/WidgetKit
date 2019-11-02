@@ -97,16 +97,14 @@ extension UICollectionView {
 
 public extension UIViewController {
     
+    var presentingContentViewController: ContentViewController? {
+        return ((presentingViewController as? UINavigationController)?.viewControllers.last ?? presentingViewController) as? ContentViewController
+    }
+    
     var previousViewController: UIViewController? {
-        if presentingViewController != nil {
-            if let navigationController = self.presentingViewController as? UINavigationController {
-                return navigationController.viewControllers.last
-            } else {
-                return presentingViewController
-            }
-        } else if let navigationController = self.navigationController, let index = navigationController.viewControllers.index(of: self) {
+        if let navigationController = self.navigationController, let index = navigationController.viewControllers.index(of: self) {
             return index > 0 ? navigationController.viewControllers[index - 1] : nil
         }
-        return nil
+        return presentingViewController
     }
 }

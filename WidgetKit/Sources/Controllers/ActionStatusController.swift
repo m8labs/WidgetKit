@@ -111,7 +111,7 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                             }
                             targetObject = object
                         }
-                        let presenter = this.closeOnSuccess ? this.viewController?.previousViewController : this.viewController
+                        let presenter = this.closeOnSuccess ? this.viewController?.presentingContentViewController : this.viewController
                         after(this.successSegueDelay) {
                             this.performSegue(segue, with: targetObject, presenter: presenter)
                         }

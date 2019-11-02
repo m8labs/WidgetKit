@@ -424,7 +424,7 @@ open class ContentTableViewCell: UITableViewCell, ContentDisplayProtocol {
     fileprivate func performDetailSegueWith(_ masterObject: NSObject) {
         guard let detailSegue = detailSegue, let detailKeyPath = detailKeyPath else { return }
         if let detailObject = masterObject.value(forKeyPath: detailKeyPath) {
-            if performDetailSegueOnPresenter, let presenter = viewController.previousViewController {
+            if performDetailSegueOnPresenter, let presenter = viewController.presentingContentViewController {
                 viewController.close()
                 after(detailSegueDelay) {
                     presenter.performSegue(withIdentifier: detailSegue, sender: ContentWrapper(content: detailObject))

@@ -24,7 +24,7 @@
 import UIKit
 import Groot
 
-public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsControllerDelegate {
+open class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsControllerDelegate {
     
     @objc public var entityName: String?
     @objc public var groupByField: String?
@@ -79,27 +79,27 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
         }
     }
     
-    override public var sectionsCount: Int {
+    override open var sectionsCount: Int {
         return fetchedResultsController.sections?.count ?? 0
     }
     
-    override public func itemsCountInSection(_ section: Int) -> Int {
+    override open func itemsCountInSection(_ section: Int) -> Int {
         return fetchedResultsController.sections?[section].numberOfObjects ?? 0
     }
     
-    override public var allItems: [Any] {
+    override open var allItems: [Any] {
         return fetchedResultsController.fetchedObjects ?? []
     }
     
-    override public func item(at indexPath: IndexPath) -> Any? {
+    override open func item(at indexPath: IndexPath) -> Any? {
         return itemsCountInSection(indexPath.section) > 0 ? fetchedResultsController.object(at: indexPath) : nil
     }
     
-    override public func indexPath(for item: Any) -> IndexPath? {
+    override open func indexPath(for item: Any) -> IndexPath? {
         return fetchedResultsController.indexPath(forObject: item as! NSFetchRequestResult)
     }
     
-    override public var totalCount: Int {
+    override open var totalCount: Int {
         guard let sections = fetchedResultsController.sections else { return 0 }
         var count = 0
         for section in sections {
@@ -108,11 +108,18 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
         return count
     }
     
-    override public func reset() {
-        _fetchedResultsController = nil
+    override open func last() -> Any? {
+        guard let sections = fetchedResultsController.sections, let lastSection = sections.last else { return nil }
+        let count = lastSection.numberOfObjects
+        return count > 0 ? item(at: IndexPath(row: count - 1, section: sections.count - 1)) : nil
     }
     
-    override public func fetch() {
+    override open func reset() {
+        _fetchedResultsController = nil
+        contentConsumer?.renderContent(from: self)
+    }
+    
+    override open func fetch() {
         var sortDescriptors = self.sortDescriptors
         if groupByField != nil && groupByField != "" {
             sortDescriptors.insert(NSSortDescriptor(key: groupByField!, ascending: sortAscending), at: 0)
@@ -138,21 +145,15 @@ public class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsContro
 
 extension ManagedObjectsProvider {
     
-    public func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        if let prepareRenderContent = contentConsumer?.prepareRenderContent, let _ = contentConsumer?.finalizeRenderContent {
-            prepareRenderContent(self)
-        }
+    open func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        contentConsumer?.prepareRenderContent(from: self)
     }
     
-    public func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        if let finalizeRenderContent = contentConsumer?.finalizeRenderContent {
-            finalizeRenderContent(self)
-        } else {
-            contentConsumer?.renderContent(from: self)
-        }
+    open func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        contentConsumer?.finalizeRenderContent(from: self)
     }
     
-    public func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
+    open func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         if type == .insert, let newIndexPath = newIndexPath {
             contentConsumer?.renderContent(anObject, change: .insert, at: newIndexPath, from: self)
         }

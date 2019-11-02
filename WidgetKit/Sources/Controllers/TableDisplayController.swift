@@ -134,11 +134,32 @@ open class TableDisplayController: BaseDisplayController {
         view.content = object
     }
     
-    open override func renderContent(from source: ContentProviderProtocol? = nil) {
+    override open func renderContent(from source: ContentProviderProtocol?) {
         reloadData(animated: animateReload)
     }
     
-    open override func setupObservers() {
+    override open func prepareRenderContent(from source: ContentProviderProtocol?) {
+//        tableView.beginUpdates()
+    }
+    
+    override open func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?) {
+        // This looks bad even with .none!
+//        switch change {
+//        case .insert:
+//            tableView.insertRows(at: [indexPath], with: animateReload ? .automatic : .none)
+//        case .delete:
+//            tableView.deleteRows(at: [indexPath], with: animateReload ? .automatic : .none)
+//        case .update:
+//            tableView.reloadRows(at: [indexPath], with: animateReload ? .automatic : .none)
+//        }
+    }
+    
+    override open func finalizeRenderContent(from source: ContentProviderProtocol?) {
+//        tableView.endUpdates()
+        reloadData(animated: animateReload)
+    }
+    
+    override open func setupObservers() {
         if let renderOn = renderOn {
             observers = [
                 NSNotification.Name(rawValue: renderOn).subscribe { [weak self] _ in
@@ -148,7 +169,7 @@ open class TableDisplayController: BaseDisplayController {
         }
     }
     
-    open override func setup() {
+    override open func setup() {
         guard let tableView = self.tableView else { return }
         tableView.dataSource = self
         if tableView.delegate == nil {
@@ -164,7 +185,7 @@ open class TableDisplayController: BaseDisplayController {
         super.setup()
     }
     
-    open override func prepare() -> [CustomIBObject] {
+    override open func prepare() -> [CustomIBObject] {
         let prepared = super.prepare()
         vars = ObjectsDictionaryProxy(copy: viewController!.vars)
         return prepared

@@ -38,15 +38,6 @@ public protocol ContentConsumerProtocol: class {
     func finalizeRenderContent(from source: ContentProviderProtocol?)
 }
 
-public extension ContentConsumerProtocol {
-    
-    func prepareRenderContent(from source: ContentProviderProtocol?) { }
-    
-    func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?) { }
-    
-    func finalizeRenderContent(from source: ContentProviderProtocol?) { }
-}
-
 open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, ObserversStorageProtocol {
     
     @IBOutlet public var mainContentProvider: BaseContentProvider?
@@ -74,7 +65,15 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
         ]
     }
     
-    open func renderContent(from source: ContentProviderProtocol? = nil) {
+    open func renderContent(from source: ContentProviderProtocol?) {
+        viewController?.refresh(elements: elements)
+    }
+    
+    open func prepareRenderContent(from source: ContentProviderProtocol?) { }
+    
+    open func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?) { }
+    
+    open func finalizeRenderContent(from source: ContentProviderProtocol?) {
         viewController?.refresh(elements: elements)
     }
     
@@ -95,7 +94,11 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
 
 open class ContentDisplayController: BaseDisplayController {
     
-    open override func renderContent(from source: ContentProviderProtocol? = nil) {
+    override open func renderContent(from source: ContentProviderProtocol?) {
+        viewController?.content = source?.value
+    }
+    
+    override open func finalizeRenderContent(from source: ContentProviderProtocol?) {
         viewController?.content = source?.value
     }
 }

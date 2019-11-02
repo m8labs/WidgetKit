@@ -82,7 +82,7 @@ open class CollectionDisplayController: BaseDisplayController {
         cell.content = object
     }
     
-    open override func renderContent(from source: ContentProviderProtocol? = nil) {
+    open override func renderContent(from source: ContentProviderProtocol?) {
         collectionView?.reloadData()
         if centerContent {
             alignToCenter()

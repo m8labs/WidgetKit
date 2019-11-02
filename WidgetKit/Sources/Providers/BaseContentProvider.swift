@@ -92,7 +92,7 @@ extension ContentProviderProtocol {
 
 open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
     
-    open var contentConsumer: ContentConsumerProtocol?
+    public weak var contentConsumer: ContentConsumerProtocol?
     
     @objc open var masterKeyPath: String?
     
@@ -102,11 +102,11 @@ open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
     
     @objc open var filterFormat: String?
     
-    @objc open var predicateFormat: String? { didSet { fetch() } }
+    @objc open var predicateFormat: String? { didSet { reset() } }
     
     @objc open var searchString: String? { didSet { fetch() } }
     
-    open var masterObject: NSObject? { didSet { fetch() } }
+    open var masterObject: NSObject? { didSet { reset() } }
     
     /// `resultChain` utilizes `NSExpression` engine, which is very powerful and can compete with
     /// objective-c/swift code with functionality. It's an array of `NSArray.wx_*` functions which
@@ -231,7 +231,7 @@ open class ItemsContentProvider: BaseContentProvider {
     open var items = [[Any]]()
     
     override open var sectionsCount: Int {
-        return items.count > 0 ? 1 : 0
+        return items.count
     }
     
     override open func itemsCountInSection(_ section: Int) -> Int {

@@ -148,21 +148,23 @@ open class StandardServiceProvider: ServiceProvider {
         before(action: action, request: urlRequest!)
         action.notification.onStart.post(object: sender, userInfo: args == nil ? nil : [Notification.argsKey: args!])
         let requestID = requestIdentifier(for: action, from: sender as? NSObject)
-        requests[requestID] = SessionManager.default.request(urlRequest!)
-            .validate { request, response, data in
-                self.requests[requestID] = nil
-                self.after(action: action, request: request, response: response, data: data)
-                if response.statusCode < 400 {
-                    return .success
-                } else if let error = self.serverError(for: action, code: response.statusCode, data: data) {
-                    return .failure(error)
-                } else if let data = data, let errorText = String(data: data, encoding: .utf8) {
-                    return .failure(NSError(domain: self.errorDomain, code: response.statusCode, userInfo: [NSLocalizedDescriptionKey: errorText]))
-                } else {
-                    return .failure(NSError(domain: self.errorDomain, code: response.statusCode))
-                }
+        let request = SessionManager.default.request(urlRequest!)
+        .validate { request, response, data in
+            self.requests[requestID] = nil
+            self.after(action: action, request: request, response: response, data: data)
+            if response.statusCode < 400 {
+                return .success
+            } else if let error = self.serverError(for: action, code: response.statusCode, data: data) {
+                return .failure(error)
+            } else if let data = data, let errorText = String(data: data, encoding: .utf8) {
+                return .failure(NSError(domain: self.errorDomain, code: response.statusCode, userInfo: [NSLocalizedDescriptionKey: errorText]))
+            } else {
+                return .failure(NSError(domain: self.errorDomain, code: response.statusCode))
             }
-            .responseJSON { response in
+        }
+        requests[requestID] = request
+        if let _ = configuration.resultType(for: action) {
+            request.responseJSON { response in
                 switch response.result {
                 case .success:
                     completion(response.result.value, nil)
@@ -170,6 +172,16 @@ open class StandardServiceProvider: ServiceProvider {
                     completion(nil, error)
                 }
             }
+        } else {
+            request.responseData { response in
+                switch response.result {
+                case .success:
+                    completion(nil, nil)
+                case let .failure(error):
+                    completion(nil, error)
+                }
+            }
+        }
     }
     
     private func performUploadRequest(_ uploadRequest: UploadRequest, requestID: String, action: String, with args: ActionArgs?, from sender: Any?, completion: @escaping Completion) {

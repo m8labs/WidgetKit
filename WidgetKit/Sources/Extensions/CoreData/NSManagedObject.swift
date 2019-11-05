@@ -69,8 +69,22 @@ public extension NSManagedObject {
         }
     }
     
-    func delete() {
-        NSPersistentContainer.default.deleteObject(self) { _ in }
+    func update(with setters: [String: Any?], completion: (()->Void)? = nil) {
+        NSPersistentContainer.default.updateObject(self, setters: setters) { error in
+            guard error == nil else {
+                preconditionFailure("NSManagedObject was not updated for fields [\(setters)]: \(error!)")
+            }
+            completion?()
+        }
+    }
+    
+    func delete(completion: (()->Void)? = nil) {
+        NSPersistentContainer.default.deleteObject(self) { error in
+            guard error == nil else {
+                preconditionFailure("NSManagedObject failed to delete: \(error!)")
+            }
+            completion?()
+        }
     }
 }
 

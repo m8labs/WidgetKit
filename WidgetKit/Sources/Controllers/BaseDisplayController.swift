@@ -79,6 +79,7 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
     
     open override func setup() {
         super.setup()
+        guard viewController != nil else { preconditionFailure("Error: view controller for \(self) wasn't set.") }
         dependency = mainContentProvider
         mainContentProvider?.contentConsumer = self
         if let searchController = searchController {

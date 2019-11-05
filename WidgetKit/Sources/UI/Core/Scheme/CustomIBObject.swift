@@ -46,7 +46,7 @@ open class CustomIBObject: NSObject {
     }
     
     open func setup() {
-        guard viewController != nil else { preconditionFailure("Error: view controller for \(self) wasn't set.") }
+        //
     }
     
     @discardableResult

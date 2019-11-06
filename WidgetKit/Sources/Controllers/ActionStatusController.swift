@@ -115,9 +115,9 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                         after(this.successSegueDelay) {
                             this.performSegue(segue, with: targetObject, presenter: presenter)
                         }
-                        if this.closeOnSuccess {
-                            this.viewController?.close()
-                        }
+                    }
+                    if this.closeOnSuccess {
+                        this.viewController?.close()
                     }
                 }
             },

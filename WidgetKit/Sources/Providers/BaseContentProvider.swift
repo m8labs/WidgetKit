@@ -275,6 +275,7 @@ public class ItemsCollection: ItemsContentProvider {
             } else {
                 self.items = [items.sortedArray(using: sortDescriptors)]
             }
+            contentConsumer?.renderContent(from: self)
         }
     }
 }

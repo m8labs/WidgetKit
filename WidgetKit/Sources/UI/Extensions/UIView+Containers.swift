@@ -65,12 +65,12 @@ extension UIView {
         }
     }
     
-    public func contentContainer() -> ContentDisplayProtocol? {
+    public func contentContainer() -> ContentAwareProtocol? {
         var view: UIView? = self
-        while view != nil && !(view is ContentDisplayProtocol) {
+        while view != nil && !(view is ContentAwareProtocol) {
             view = view!.superview
         }
-        return (view as? ContentDisplayProtocol) ?? (viewController() as? ContentDisplayProtocol)
+        return (view as? ContentAwareProtocol) ?? (viewController() as? ContentAwareProtocol)
     }
 }
 

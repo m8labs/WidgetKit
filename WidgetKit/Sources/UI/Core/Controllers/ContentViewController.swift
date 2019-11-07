@@ -23,15 +23,15 @@
 
 import UIKit
 
-open class ContentViewController: UIViewController, ContentDisplayProtocol, ObserversStorageProtocol {
+open class ContentViewController: UIViewController, ContentSchemedProtocol, ObserversStorageProtocol {
     
-    lazy var elements: [NSObject] = { return Array(wx_elements.union(wx_navbarElements)) }()
+    lazy public var elements: [NSObject] = { return Array(wx_elements.union(wx_navbarElements)) }()
     
     @IBOutlet var objects: [NSObject]?
     
     public var widget: Widget? { return storyboard?.widget }
     
-    var vars = ObjectsDictionaryProxy()
+    public var vars = ObjectsDictionaryProxy()
     
     public internal(set) var scheme: NSDictionary?
     
@@ -92,10 +92,6 @@ open class ContentViewController: UIViewController, ContentDisplayProtocol, Obse
                 (self as? SchemeDiagnosticsProtocol)?.assigned?(to: item.target, with: item.target.wx.identifier, keyPath: item.keyPath, source: item.source, value: item.value, valueType: item.value != nil ? "\(type(of: item.value!)): \(item.value!)" : "", binding: item.binding)
             }
         }
-    }
-    
-    @objc open dynamic func configure() {
-        refresh()
     }
     
     open override func viewDidLoad() {

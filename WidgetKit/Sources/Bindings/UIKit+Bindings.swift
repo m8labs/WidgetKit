@@ -77,7 +77,7 @@ extension UIImageView {
         get { return nil }
         set {
             if let value = newValue {
-                image = UIImage(named: value, in: contentContainer()?.widget?.bundle, compatibleWith: nil)
+                image = UIImage(named: value)
             } else {
                 image = nil
             }

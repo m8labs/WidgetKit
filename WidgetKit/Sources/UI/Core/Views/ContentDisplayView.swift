@@ -24,20 +24,40 @@
 import UIKit
 
 @objc
-public protocol ContentAwareProtocol: class {
+public protocol ContentAwareProtocol: AnyObject {
     var content: Any? { get set }
 }
 
-@objc
 public protocol ContentDisplayProtocol: ContentAwareProtocol {
     
-    var scheme: NSDictionary?  { get }
+    var elements: [NSObject] { get }
     
-    var widget: Widget? { get }
+    var vars: ObjectsDictionaryProxy { get }
     
     func configure()
     
     func refresh(elements: [NSObject]?)
+}
+
+extension ContentDisplayProtocol {
+    
+    public func configure() {
+        refresh(elements: elements)
+    }
+    
+    public func refresh(elements: [NSObject]? = nil) {
+        vars.setValue(content, forKey: ObjectsDictionaryProxy.contentKey)
+        elements?.forEach { element in
+            element.wx.setupObject(using: vars, bind: false)
+        }
+    }
+}
+
+public protocol ContentSchemedProtocol: ContentDisplayProtocol {
+    
+    var scheme: NSDictionary?  { get }
+    
+    var widget: Widget? { get }
 }
 
 @objc
@@ -54,13 +74,13 @@ public protocol ContentFormProtocol: class {
     func highlightField(_ view: UIView, error: Error?)
 }
 
-open class ContentDisplayView: UIView, ContentDisplayProtocol, ObserversStorageProtocol {
+open class ContentDisplayView: UIView, ContentSchemedProtocol, ObserversStorageProtocol {
     
-    lazy var elements: [NSObject] = { return Array(wx_elements) }()
+    lazy public var elements: [NSObject] = { return Array(wx_elements) }()
     
     lazy var resizingElements: [UIView] = { return wx_resizingElements }()
     
-    var vars = ObjectsDictionaryProxy()
+    public var vars = ObjectsDictionaryProxy()
     
     public internal(set) weak var widget: Widget?
     
@@ -96,7 +116,7 @@ open class ContentDisplayView: UIView, ContentDisplayProtocol, ObserversStorageP
         }
     }
     
-    @objc open dynamic func configure() {
+    open dynamic func configure() {
         refresh()
     }
 }

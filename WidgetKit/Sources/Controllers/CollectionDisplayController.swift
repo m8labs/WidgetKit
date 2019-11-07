@@ -30,11 +30,11 @@ open class CollectionDisplayController: BaseDisplayController {
     
     @objc public var searchCellIdentifier: String?
     
-    @objc public var performSegueForCells = -1
-    
     @objc public var handleSelection = false
     
     @objc public var centerContent = false
+    
+    @objc public var cellNibNames: String?
     
     public var cellSelected: ((ContentCollectionViewCell, Any, IndexPath) -> Void)?
     
@@ -64,6 +64,13 @@ open class CollectionDisplayController: BaseDisplayController {
     
     fileprivate var vars: ObjectsDictionaryProxy!
     
+    func registerCellNibs() {
+        (cellNibNames ?? "").components(separatedBy: CharacterSet(charactersIn: ", ")).forEach { nibName in
+            let nib = UINib(nibName: nibName, bundle: bundle)
+            collectionView.register(nib, forCellWithReuseIdentifier: nibName)
+        }
+    }
+    
     open func cellIdentifier(for object: Any, at indexPath: IndexPath) -> String {
         let isSearching = searchController?.isSearching ?? false
         if let vars = vars {
@@ -73,13 +80,15 @@ open class CollectionDisplayController: BaseDisplayController {
                 return eval.perform(with: vars) as! String
             }
         }
-        return (isSearching ? searchCellIdentifier : cellIdentifier) ?? type(of: self).defaultCellIdentifier
+        return (isSearching && searchCellIdentifier != nil ? searchCellIdentifier : cellIdentifier) ?? type(of: self).defaultCellIdentifier
     }
     
     open func configureCell(_ cell: ContentCollectionViewCell, object: Any, indexPath: IndexPath) {
-        cell.widget = widget
-        cell.scheme = viewController?.scheme
-        cell.content = object
+        if let contentView = cell.contentDisplayView {
+            contentView.widget = widget
+            contentView.scheme = viewController?.scheme
+            contentView.content = object
+        }
     }
     
     open override func renderContent(from source: ContentProviderProtocol?) {
@@ -94,6 +103,9 @@ open class CollectionDisplayController: BaseDisplayController {
             collectionView.dataSource = self
             if collectionView.delegate == nil {
                 collectionView.delegate = self
+            }
+            if cellNibNames != nil {
+                registerCellNibs()
             }
         }
         super.setup()
@@ -130,11 +142,12 @@ extension CollectionDisplayController: UICollectionViewDataSource {
     }
     
     open func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let object = contentProvider.item(at: indexPath) else { preconditionFailure("Cell object should not be nil.") }
+        guard let object = contentProvider.item(at: indexPath) else { preconditionFailure("Cell's object should not be nil.") }
         let cellId = cellIdentifier(for: object, at: indexPath)
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath)
-        precondition(cell is ContentCollectionViewCell, "Cell must be of '\(ContentCollectionViewCell.self)' type.")
-        configureCell(cell as! ContentCollectionViewCell, object: object, indexPath: indexPath)
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as? ContentCollectionViewCell else {
+            preconditionFailure("Cell must be of '\(ContentCollectionViewCell.self)' type.")
+        }
+        configureCell(cell, object: object, indexPath: indexPath)
         return cell
     }
 }
@@ -165,14 +178,10 @@ extension CollectionDisplayController: UICollectionViewDelegate {
     open func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell else { return }
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
-        if performSegueForCells > 0 && cell.reuseIdentifier != nil {
-            viewController?.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
-        } else {
-            if handleSelection {
-                handleSelectionForCell(cell, object: object, at: indexPath)
-            }
-            cellSelected?(cell, object, indexPath)
+        if handleSelection {
+            handleSelectionForCell(cell, object: object, at: indexPath)
         }
+        cellSelected?(cell, object, indexPath)
     }
     
     open func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
@@ -237,37 +246,14 @@ extension CollectionDisplayController {
 
 // MARK: -
 
-open class ContentCollectionViewCell: UICollectionViewCell, ContentDisplayProtocol {
+open class ContentCollectionViewCell: UICollectionViewCell, ContentAwareProtocol {
     
-    public fileprivate(set) var scheme: NSDictionary? {
-        didSet {
-            if oldValue == nil {
-                contentDisplayView?.setup(scheme: scheme)
-            }
-        }
+    public var contentDisplayView: ContentDisplayView? {
+        contentView as? ContentDisplayView ?? contentView.subviews.first as? ContentDisplayView
     }
-    
-    public internal(set) weak var widget: Widget? {
-        didSet {
-            if oldValue == nil {
-                contentDisplayView?.widget = widget
-            }
-        }
-    }
-    
-    @IBOutlet public var contentDisplayView: ContentDisplayView?
     
     public var content: Any? {
-        didSet {
-            configure()
-        }
-    }
-    
-    public func refresh(elements: [NSObject]? = nil) {
-        contentDisplayView?.content = content
-    }
-    
-    public func configure() {
-        refresh()
+        get { return contentDisplayView?.content }
+        set { contentDisplayView?.content = newValue }
     }
 }

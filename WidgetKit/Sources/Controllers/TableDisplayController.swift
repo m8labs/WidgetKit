@@ -34,21 +34,19 @@ open class TableDisplayController: BaseDisplayController {
     
     @objc public var sectionFooterIdentifier: String?
     
-    @objc public var cellNibNames: [String]?
+    @objc public var cellNibNames: String?
+    
+    @objc public var sectionNibNames: String?
     
     @objc public var animateReload = false
     
     @objc public var maxHeight: CGFloat = 0
-    
-    @objc public var systemAutomaticDimensionEnabled = true
     
     @objc public var allowDeletion = false
     
     @objc public var handleSelection = false
     
     @objc public var defaultSelectionBehavior = false
-    
-    @objc public var performSegueForCells = -1
     
     public var cellSelected: ((ContentTableViewCell, Any, IndexPath) -> Void)?
     
@@ -74,18 +72,19 @@ open class TableDisplayController: BaseDisplayController {
     
     public private(set) var selectedObjects = Set<NSObject>()
     
-    fileprivate var cellSizeCalculator = TextSizeCalculator()
-    
-    fileprivate var cellTemplates = [String: ContentTableViewCell]()
-    
-    fileprivate weak var objectToDelete: NSManagedObject?
-    
     fileprivate var vars: ObjectsDictionaryProxy!
     
-    func registerNibs() {
-        cellNibNames?.forEach { nibName in
+    func registerCellNibs() {
+        (cellNibNames ?? "").components(separatedBy: CharacterSet(charactersIn: ", ")).forEach { nibName in
             let nib = UINib(nibName: nibName, bundle: bundle)
             tableView.register(nib, forCellReuseIdentifier: nibName)
+        }
+    }
+    
+    func registerSectionNibs() {
+        (sectionNibNames ?? "").components(separatedBy: CharacterSet(charactersIn: ", ")).forEach { nibName in
+            let nib = UINib(nibName: nibName, bundle: bundle)
+            tableView.register(nib, forHeaderFooterViewReuseIdentifier: nibName)
         }
     }
     
@@ -102,9 +101,6 @@ open class TableDisplayController: BaseDisplayController {
     }
     
     open func shouldDisplayObject(_ object: Any) -> Bool {
-        if let managedObject = object as? NSManagedObject {
-            return managedObject != objectToDelete
-        }
         return true
     }
     
@@ -117,13 +113,23 @@ open class TableDisplayController: BaseDisplayController {
                 return eval.perform(with: vars) as! String
             }
         }
-        return (isSearching ? searchCellIdentifier : cellIdentifier) ?? type(of: self).defaultCellIdentifier
+        return (isSearching && searchCellIdentifier != nil ? searchCellIdentifier : cellIdentifier) ?? type(of: self).defaultCellIdentifier
+    }
+    
+    open func sectionHeaderIdentifier(for section: Int) -> String {
+        return sectionHeaderIdentifier ?? type(of: self).defaultSectionHeaderIdentifier
+    }
+    
+    open func sectionFooterIdentifier(for section: Int) -> String {
+        return sectionFooterIdentifier ?? type(of: self).defaultSectionFooterIdentifier
     }
     
     open func configureCell(_ cell: ContentTableViewCell, object: Any, indexPath: IndexPath) {
-        cell.widget = widget
-        cell.scheme = viewController?.scheme
-        cell.content = object
+        if let contentView = cell.contentDisplayView {
+            contentView.widget = widget
+            contentView.scheme = viewController?.scheme
+            contentView.content = object
+        }
     }
     
     open func configureSection(_ view: ContentDisplayView, object: Any?, section: Int) {
@@ -142,6 +148,8 @@ open class TableDisplayController: BaseDisplayController {
 //        tableView.beginUpdates()
     }
     
+    fileprivate var needsReload = false
+    
     override open func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?) {
         // This looks bad even with .none!
 //        switch change {
@@ -152,11 +160,19 @@ open class TableDisplayController: BaseDisplayController {
 //        case .update:
 //            tableView.reloadRows(at: [indexPath], with: animateReload ? .automatic : .none)
 //        }
+        if change == .delete {
+            needsReload = false
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+        } else {
+            needsReload = true
+        }
     }
     
     override open func finalizeRenderContent(from source: ContentProviderProtocol?) {
+        if needsReload {
+            reloadData(animated: animateReload)
+        }
 //        tableView.endUpdates()
-        reloadData(animated: animateReload)
     }
     
     override open func setupObservers() {
@@ -170,18 +186,16 @@ open class TableDisplayController: BaseDisplayController {
     }
     
     override open func setup() {
-        guard let tableView = self.tableView else { return }
         tableView.dataSource = self
         if tableView.delegate == nil {
             tableView.delegate = self
         }
         if cellNibNames != nil {
-            registerNibs()
-            if performSegueForCells < 0 {
-                performSegueForCells = 1
-            }
+            registerCellNibs()
         }
-        tableView.register(UITableViewHeaderFooterView.self, forHeaderFooterViewReuseIdentifier: type(of: self).systemHeaderFooterIdentifier)
+        if sectionNibNames != nil {
+            registerSectionNibs()
+        }
         super.setup()
     }
     
@@ -208,11 +222,12 @@ extension TableDisplayController: UITableViewDataSource {
     }
     
     open func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let object = contentProvider.item(at: indexPath) else { preconditionFailure("Cell object should not be nil.") }
+        guard let object = contentProvider.item(at: indexPath) else { preconditionFailure("Cell's object should not be nil.") }
         let cellId = cellIdentifier(for: object, at: indexPath)
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath)
-        precondition(cell is ContentTableViewCell, "Cell must be of '\(ContentTableViewCell.self)' type.")
-        configureCell(cell as! ContentTableViewCell, object: object, indexPath: indexPath)
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as? ContentTableViewCell else {
+            preconditionFailure("Cell must be of '\(ContentTableViewCell.self)' type.")
+        }
+        configureCell(cell, object: object, indexPath: indexPath)
         return cell
     }
 }
@@ -251,9 +266,6 @@ extension TableDisplayController: UITableViewDelegate {
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
         if cell.detailSegue != nil {
             cell.performDetailSegueWith(object)
-        }
-        if performSegueForCells > 0 && cell.reuseIdentifier != nil {
-            viewController?.performSegue(withIdentifier: cell.reuseIdentifier!, sender: cell)
         } else {
             if handleSelection {
                 handleSelectionForCell(cell, object: object, at: indexPath)
@@ -283,64 +295,44 @@ extension TableDisplayController: UITableViewDelegate {
     // Header/Footer views
     
     func viewForHeaderOrFooter(withIdentifier identifier: String, inSection section: Int) -> UIView? {
-        let systemView: UITableViewHeaderFooterView? = tableView.dequeueReusableHeaderFooterView(withIdentifier: type(of: self).systemHeaderFooterIdentifier)
-        guard systemView != nil else { return nil }
-        let cell = tableView.dequeueReusableCell(withIdentifier: identifier)
-        guard let customView = cell?.contentView.subviews.first as? ContentDisplayView, let object = contentProvider.item(at: IndexPath(row: 0, section: section)) else {
-            return nil
-        }
-        systemView!.backgroundView = customView
-        configureSection(customView, object: object, section: section)
+        guard let systemView = tableView.dequeueReusableHeaderFooterView(withIdentifier: identifier) else { return nil }
+        guard let contentView = systemView.subviews.first as? ContentDisplayView else { return nil }
+        guard let object = contentProvider.item(at: IndexPath(row: 0, section: section)) else { return nil }
+        configureSection(contentView, object: object, section: section)
         return systemView
     }
     
     open func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        let identifier = sectionHeaderIdentifier ?? type(of: self).defaultSectionHeaderIdentifier
+        let identifier = sectionHeaderIdentifier(for: section)
         return viewForHeaderOrFooter(withIdentifier: identifier, inSection: section)
     }
     
     open func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
-        let identifier = sectionFooterIdentifier ?? type(of: self).defaultSectionFooterIdentifier
+        let identifier = sectionFooterIdentifier(for: section)
         return viewForHeaderOrFooter(withIdentifier: identifier, inSection: section)
+    }
+    
+    open func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        let count = contentProvider.itemsCountInSection(section)
+        return count > 0 ? tableView.sectionHeaderHeight : 0
+    }
+    
+    open func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        let count = contentProvider.itemsCountInSection(section)
+        return count > 0 ? tableView.sectionFooterHeight : 0
     }
     
     // Editing rows
     
     open func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         guard editingStyle == .delete, let object = contentProvider.item(at: indexPath) as? NSManagedObject else { return }
-        objectToDelete = object
-        tableView.reloadRows(at: [indexPath], with: .automatic) // animation
         deleteController?.performServiceAction(with: object)
-        after(0.75) { // waiting for animation finished
-            self.objectToDelete = nil
-            object.delete()
-        }
+        object.delete()
     }
     
     open func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCellEditingStyle {
         guard allowDeletion, let object = contentProvider.item(at: indexPath) as? NSManagedObject else { return .none }
         return object.isMine ? .delete : .none
-    }
-    
-    // Cell Sizing
-    
-    open func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        guard let object = contentProvider.item(at: indexPath), shouldDisplayObject(object) else { return 0 }
-        return UITableViewAutomaticDimension
-    }
-    
-    public func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
-        let identifier = sectionFooterIdentifier ?? type(of: self).defaultSectionFooterIdentifier
-        let cell = tableView.dequeueReusableCell(withIdentifier: identifier)
-        let count = contentProvider.itemsCountInSection(section)
-        return cell == nil || count == 0 ? 0 : tableView.sectionFooterHeight
-    }
-    
-    public func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        let identifier = sectionHeaderIdentifier ?? type(of: self).defaultSectionHeaderIdentifier
-        let cell = tableView.dequeueReusableCell(withIdentifier: identifier)
-        let count = contentProvider.itemsCountInSection(section)
-        return cell == nil || count == 0 ? 0 : tableView.sectionHeaderHeight
     }
     
     @available(iOS 13.0, *)
@@ -357,6 +349,13 @@ extension TableDisplayController: UITableViewDelegate {
             }
             return UIMenu(title: viewController.previewMenuTitle, children: actions)
         }
+    }
+    
+    // Cell Sizing
+    
+    open func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        guard let object = contentProvider.item(at: indexPath), shouldDisplayObject(object) else { return 0 }
+        return UITableViewAutomaticDimension
     }
 }
 
@@ -404,7 +403,7 @@ extension TableDisplayController {
 
 // MARK: -
 
-open class ContentTableViewCell: UITableViewCell, ContentDisplayProtocol {
+open class ContentTableViewCell: UITableViewCell, ContentAwareProtocol {
     
     @objc public var detailSegue: String?
     @objc public var detailKeyPath: String?
@@ -419,6 +418,10 @@ open class ContentTableViewCell: UITableViewCell, ContentDisplayProtocol {
             preconditionFailure("Invalid view controller type: \(ContentViewController.self) needed.")
         }
         return vc
+    }
+    
+    public var contentDisplayView: ContentDisplayView? {
+        contentView as? ContentDisplayView ?? contentView.subviews.first as? ContentDisplayView
     }
     
     fileprivate func performDetailSegueWith(_ masterObject: NSObject) {
@@ -442,35 +445,8 @@ open class ContentTableViewCell: UITableViewCell, ContentDisplayProtocol {
         }
     }
     
-    public fileprivate(set) var scheme: NSDictionary? {
-        didSet {
-            if oldValue == nil {
-                contentDisplayView?.setup(scheme: scheme)
-            }
-        }
-    }
-    
-    public internal(set) weak var widget: Widget? {
-        didSet {
-            if oldValue == nil {
-                contentDisplayView?.widget = widget
-            }
-        }
-    }
-    
-    @IBOutlet public var contentDisplayView: ContentDisplayView?
-    
     public var content: Any? {
-        didSet {
-            configure()
-        }
-    }
-    
-    public func refresh(elements: [NSObject]? = nil) {
-        contentDisplayView?.content = content
-    }
-    
-    public func configure() {
-        refresh()
+        get { return contentDisplayView?.content }
+        set { contentDisplayView?.content = newValue }
     }
 }

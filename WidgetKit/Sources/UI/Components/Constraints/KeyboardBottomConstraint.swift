@@ -37,7 +37,7 @@ public class KeyboardBottomConstraint: NSLayoutConstraint, ObserversStorageProto
     
     func adjustHeight(with notification: Notification, hide: Bool) {
         precondition(view != nil, "You need to set `\(KeyboardBottomConstraint.self).view` outlet.")
-        guard let kbRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
+        guard view.window != nil, let kbRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
         guard hide || abs(initialHeight) < kbRect.height else { return }
         let h = hide ? initialHeight : (kbRect.height + keyboardMargin)
         guard h != constant else { return }

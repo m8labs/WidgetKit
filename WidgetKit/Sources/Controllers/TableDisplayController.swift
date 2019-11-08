@@ -91,7 +91,7 @@ open class TableDisplayController: BaseDisplayController {
     func reloadData(animated: Bool = false) {
         if animated {
             if contentProvider != nil && contentProvider.sectionsCount > 0 {
-                tableView.reloadSections(IndexSet(integersIn: 0...contentProvider.sectionsCount - 1), with: .automatic)
+                tableView.reloadSections(IndexSet(integersIn: 0..<contentProvider.sectionsCount), with: .automatic)
                 fitContentIfNecessary()
             }
         } else {
@@ -296,9 +296,14 @@ extension TableDisplayController: UITableViewDelegate {
     
     func viewForHeaderOrFooter(withIdentifier identifier: String, inSection section: Int) -> UIView? {
         guard let systemView = tableView.dequeueReusableHeaderFooterView(withIdentifier: identifier) else { return nil }
-        guard let contentView = systemView.subviews.first as? ContentDisplayView else { return nil }
         guard let object = contentProvider.item(at: IndexPath(row: 0, section: section)) else { return nil }
-        configureSection(contentView, object: object, section: section)
+        var customView = systemView.contentView.subviews.first as? ContentDisplayView
+        if customView == nil {
+            customView = systemView.subviews.first(where: { $0 is ContentDisplayView }) as? ContentDisplayView
+            guard customView != nil else { preconditionFailure("Put ContentDisplayView as the only subview of UITableViewHeaderFooterView in the xib.") }
+            systemView.addSubview(customView!)
+        }
+        configureSection(customView!, object: object, section: section)
         return systemView
     }
     
@@ -314,12 +319,12 @@ extension TableDisplayController: UITableViewDelegate {
     
     open func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         let count = contentProvider.itemsCountInSection(section)
-        return count > 0 ? tableView.sectionHeaderHeight : 0
+        return count > 0 && tableView.sectionHeaderHeight > 1 ? tableView.sectionHeaderHeight : 0
     }
     
     open func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
         let count = contentProvider.itemsCountInSection(section)
-        return count > 0 ? tableView.sectionFooterHeight : 0
+        return count > 0 && tableView.sectionFooterHeight > 1 ? tableView.sectionFooterHeight : 0
     }
     
     // Editing rows

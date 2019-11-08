@@ -67,14 +67,6 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
         return actionName
     }
     
-    func performSegue(_ segue: String, with object: Any, presenter: UIViewController? = nil) {
-        if let presenter = presenter {
-            presenter.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
-        } else {
-            viewController?.performSegue(withIdentifier: segue, sender: ContentWrapper(content: object))
-        }
-    }
-    
     public func setupObservers() {
         let actionName = resolvedActionName
         observers = [
@@ -111,9 +103,10 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                             }
                             targetObject = object
                         }
-                        let presenter = this.closeOnSuccess ? this.viewController?.presentingContentViewController : this.viewController
-                        after(this.successSegueDelay) {
-                            this.performSegue(segue, with: targetObject, presenter: presenter)
+                        if let presenter = this.closeOnSuccess ? this.viewController?.presentingContentViewController : this.viewController {
+                            after(this.successSegueDelay) {
+                                presenter.performSegue(withIdentifier: segue, sender: ContentWrapper(content: targetObject))
+                            }
                         }
                     }
                     if this.closeOnSuccess {

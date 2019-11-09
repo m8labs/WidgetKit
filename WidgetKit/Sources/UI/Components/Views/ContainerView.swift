@@ -103,3 +103,13 @@ public class ContainerView: UIView {
         }
     }
 }
+
+open class NibView: UIView {
+    
+    open override func awakeAfter(using coder: NSCoder) -> Any? {
+        if subviews.count == 0 {
+            return UINib(nibName: "\(Self.self)", bundle: nil).instantiate(withOwner: nil, options: nil)[0] as! UIView
+        }
+        return self
+    }
+}

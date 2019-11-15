@@ -290,7 +290,11 @@ open class StandardServiceProvider: ServiceProvider {
             }
             guard let resultType = config.resultType(for: action) else {
                 print("Empty result type for action '\(action)'.")
-                return self.handleResponse(action.notification.onSuccess, with: args, sender: sender, result: nil, error: nil, completion: completion)
+                self.handleResponse(action.notification.onSuccess, with: args, sender: sender, result: nil, error: nil, completion: completion)
+                if let nextAction = config.nextAction(for: action) {
+                    self.performAction(nextAction, with: args, from: sender)
+                }
+                return
             }
             var result = data
             if let resultKeyPath = config.resultKeyPath(for: action), resultKeyPath.count > 0 {

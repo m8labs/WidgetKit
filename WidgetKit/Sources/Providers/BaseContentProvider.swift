@@ -106,7 +106,7 @@ open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
     
     @objc open var searchString: String? { didSet { fetch() } }
     
-    open var masterObject: NSObject? { didSet { reset() } }
+    open var masterObject: NSObject? { didSet { fetch() } }
     
     /// `resultChain` utilizes `NSExpression` engine, which is very powerful and can compete with
     /// objective-c/swift code with functionality. It's an array of `NSArray.wx_*` functions which

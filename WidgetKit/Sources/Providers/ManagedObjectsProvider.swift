@@ -92,7 +92,8 @@ open class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsControll
     }
     
     override open func item(at indexPath: IndexPath) -> Any? {
-        return itemsCountInSection(indexPath.section) > 0 ? fetchedResultsController.object(at: indexPath) : nil
+        let count = itemsCountInSection(indexPath.section)
+        return count > 0 && indexPath.item < count ? fetchedResultsController.object(at: indexPath) : nil
     }
     
     override open func indexPath(for item: Any) -> IndexPath? {

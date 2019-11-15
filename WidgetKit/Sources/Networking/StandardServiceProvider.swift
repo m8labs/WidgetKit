@@ -216,7 +216,7 @@ open class StandardServiceProvider: ServiceProvider {
         guard let requestInfo = configuration.urlRequest(for: action, with: args), let rawRequest = requestInfo.request else {
             return print("Unable to initiate request for action '\(action)' with object '\(String(describing: args))'")
         }
-        var body = requestInfo.body // shoud be nil for uploads
+        var body = requestInfo.body // should be nil for uploads
         let request = prepareRequest(rawRequest, body: &body, for: action, from: sender)
         guard request != nil else {
             return print("Unable to compose request for action '\(action)' with object '\(String(describing: args))'")

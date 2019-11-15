@@ -78,7 +78,7 @@ extension Widget {
         }
         let bundleIdentifier = bundle.bundleIdentifier!
         guard identifier.hasPrefix(bundleIdentifier) else {
-            preconditionFailure("Failed to load bundle: '\(identifier)' shoud start with '\(bundleIdentifier)'")
+            preconditionFailure("Failed to load bundle: '\(identifier)' should start with '\(bundleIdentifier)'")
         }
         let storyboard = UIStoryboard(name: entryPoint, bundle: bundle)
         guard let vc = storyboard.instantiateInitialViewController() else {

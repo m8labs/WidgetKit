@@ -115,7 +115,7 @@ open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
     /// `resultChainArgs` array. Each method can take only 1 argument. F.e. if you have a result array
     /// such as [A, B, C, D, E, F], then pair of `resultChain` - `resultChainArgs` such as
     /// [`wx_takeFirst:`, `wx_takeLast:`] - [4, 2] will produce [C, D]. `resultChain` and `resultChainArgs`
-    /// shoud contain equal number of elements. If you need to call a method that doesn`t take arguments,
+    /// should contain equal number of elements. If you need to call a method that doesn`t take arguments,
     /// pass an empty string or 0.
     ///
     /// You can also call some of the `NSArray` functions directly, but `wx_*` wrappers are more safe.

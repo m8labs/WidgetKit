@@ -399,8 +399,6 @@ extension TableDisplayController {
     
     static let defaultSectionFooterIdentifier = "Footer"
     
-    static let systemHeaderFooterIdentifier = "HeaderFooter"
-    
     static let cellIdentifierKey = "\(#selector(getter: cellIdentifier))"
     
     static let searchCellIdentifierKey = "\(#selector(getter: searchCellIdentifier))"

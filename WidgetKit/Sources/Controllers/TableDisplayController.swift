@@ -128,8 +128,8 @@ open class TableDisplayController: BaseDisplayController {
         if let contentView = cell.contentDisplayView {
             contentView.widget = widget
             contentView.scheme = viewController?.scheme
-            contentView.content = object
         }
+        cell.content = object
     }
     
     open func configureSection(_ view: ContentDisplayView, object: Any?, section: Int) {
@@ -448,8 +448,9 @@ open class ContentTableViewCell: UITableViewCell, ContentAwareProtocol {
         }
     }
     
-    public var content: Any? {
-        get { return contentDisplayView?.content }
-        set { contentDisplayView?.content = newValue }
+    open var content: Any? {
+        didSet {
+            contentDisplayView?.content = content
+        }
     }
 }

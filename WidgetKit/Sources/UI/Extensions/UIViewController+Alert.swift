@@ -62,18 +62,18 @@ extension UIViewController {
     }
 }
 
-public func showAlert(title: String? = nil, message: String?, actions: [(title: String, handler: (() -> Void)?)]) {
+public func showGlobalAlert(title: String? = nil, message: String?, actions: [(title: String, handler: (() -> Void)?)]) {
     UIApplication.shared.keyWindow?.rootViewController?.showAlert(title: title, message: message, actions: actions)
 }
 
-public func showActionSheet(title: String? = nil, message: String?, actions: [(title: String, isDestructive: Bool, handler: (() -> Void)?)]) {
+public func showGlobalActionSheet(title: String? = nil, message: String?, actions: [(title: String, isDestructive: Bool, handler: (() -> Void)?)]) {
     UIApplication.shared.keyWindow?.rootViewController?.showActionSheet(title: title, message: message, options: actions)
 }
 
-public func showAlert(title: String? = nil, message: String?, action: (title: String, cancelTitle: String, handler: (() -> Void)?)? = nil) {
+public func showGlobalAlert(title: String? = nil, message: String?, action: (title: String, cancelTitle: String, handler: (() -> Void)?)? = nil) {
     if let action = action {
-        showAlert(title: title, message: message, actions: [(action.title, action.handler), (action.cancelTitle, nil)])
+        showGlobalAlert(title: title, message: message, actions: [(action.title, action.handler), (action.cancelTitle, nil)])
     } else {
-        showAlert(title: title, message: message, actions: [])
+        showGlobalAlert(title: title, message: message, actions: [])
     }
 }

@@ -25,11 +25,19 @@ import UIKit
 
 public extension UIViewController {
     
+    func dismiss() {
+        dismiss(animated: true)
+    }
+    
+    func back() {
+        navigationController?.popViewController(animated: true)
+    }
+    
     func close() {
         if presentingViewController != nil {
-            dismiss(animated: true)
+            dismiss()
         } else {
-            navigationController?.popViewController(animated: true)
+            back()
         }
     }
     
@@ -38,10 +46,10 @@ public extension UIViewController {
     }
     
     @IBAction func dismissAction(_ sender: Any?) {
-        dismiss(animated: true)
+        dismiss()
     }
     
     @IBAction func backAction(_ sender: Any?) {
-        navigationController?.popViewController(animated: true)
+        back()
     }
 }

@@ -94,7 +94,8 @@ extension UIImageView {
                     wx_imageName = string
                 }
             } else if let url = newValue as? URL {
-                wx_imageUrl = url.absoluteString
+                image = nil
+                af_setImage(withURL: url)
             } else {
                 wx_value = newValue
             }

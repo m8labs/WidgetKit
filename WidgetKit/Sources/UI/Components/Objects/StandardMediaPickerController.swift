@@ -23,7 +23,6 @@
 
 import UIKit
 import Photos
-import Alamofire
 import MobileCoreServices
 
 public class PHAssetView: UIImageView {
@@ -87,13 +86,15 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
     
     @objc public var imagesOnly = false
     
+    @objc public var saveCaperaOutput = true
+    
     @objc public var cameraOptionTitle = NSLocalizedString("Take With Camera", comment: "")
     
     @objc public var libraryOptionTitle = NSLocalizedString("Choose From Library", comment: "")
     
     @objc public var cancelOptionTitle = NSLocalizedString("Cancel", comment: "")
     
-    public var finished: (() -> Void)?
+    public var finished: ((Error?) -> Void)?
     
     public func pick(with sourceType: UIImagePickerController.SourceType) {
         let picker = UIImagePickerController()
@@ -132,35 +133,64 @@ public class StandardMediaPickerController: ButtonActionController, UIImagePicke
         }
     }
     
-    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String: Any]) {
-        pickerResult = MediaPickerResult(info: info)
-        if pickerResult!.asset == nil && pickerResult!.isMovie {
-            var assetRequest:PHAssetCreationRequest? = nil
+    public static func saveFileWithObject(_ object: Any?, resourceType: PHAssetResourceType, completion: @escaping (PHAsset?, Error?)->Void) {
+        guard object is UIImage || object is URL else {
+            preconditionFailure("Saved object should be either UIImage or file's URL.")
+        }
+        let save = {
+            var assetRequest:PHAssetChangeRequest? = nil
             var assetPlaceholder:PHObjectPlaceholder? = nil
             PHPhotoLibrary.shared().performChanges({
-                assetRequest = PHAssetCreationRequest.forAsset()
+                assetRequest = object is UIImage ?
+                    PHAssetChangeRequest.creationRequestForAsset(from: object as! UIImage) :
+                    (resourceType == .video ? PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: object as! URL) : PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: object as! URL))
                 assetPlaceholder = assetRequest!.placeholderForCreatedAsset
-                let opts = PHAssetResourceCreationOptions()
-                opts.shouldMoveFile = true
-                assetRequest!.addResource(with: PHAssetResourceType.video, fileURL: self.pickerResult!.mediaUrl!, options: opts)
             }) { saved, error in
-                let asset = assetPlaceholder!.asset
-                async {
-                    var info = info
-                    if saved {
-                        info["UIImagePickerControllerPHAsset"] = asset
+                asyncMain {
+                    if error != nil {
+                        completion(nil, error)
+                    } else if saved {
+                        completion(assetPlaceholder!.asset, nil)
+                    } else {
+                        completion(nil, nil) // wtf??
                     }
-                    self.pickerResult = MediaPickerResult(info: info)
-                    picker.dismiss(animated: true) { self.finished?() }
                 }
             }
+        }
+        if PHPhotoLibrary.authorizationStatus() == .authorized {
+            save()
         } else {
-            picker.dismiss(animated: true) { self.finished?() }
+            PHPhotoLibrary.requestAuthorization { status in
+                asyncMain {
+                    guard status == .authorized else { completion(nil, nil); return }
+                    save()
+                }
+            }
+        }
+    }
+    
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String: Any]) {
+        pickerResult = MediaPickerResult(info: info)
+        if saveCaperaOutput && pickerResult!.asset == nil {
+            guard pickerResult!.mediaUrl != nil || pickerResult!.originalImage != nil else {
+                preconditionFailure("Picker doesn't contain any useful objects.")
+            }
+            Self.saveFileWithObject(pickerResult!.mediaUrl ?? pickerResult!.originalImage,
+                                    resourceType: pickerResult!.isMovie ? .video : .photo)
+            { asset, error in
+                guard error == nil else { self.finished?(error); return }
+                var info = info
+                info["UIImagePickerControllerPHAsset"] = asset
+                self.pickerResult = MediaPickerResult(info: info)
+                picker.dismiss(animated: true) { self.finished?(nil) }
+            }
+        } else {
+            picker.dismiss(animated: true) { self.finished?(nil) }
         }
     }
     
     public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        picker.dismiss(animated: true) { self.finished?() }
+        picker.dismiss(animated: true) { self.finished?(nil) }
     }
     
     public func resetSelection() {

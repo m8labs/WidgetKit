@@ -265,7 +265,12 @@ open class ItemsContentProvider: BaseContentProvider {
 public class ItemsCollection: ItemsContentProvider {
     
     override public func fetch() {
-        guard let masterObject = self.masterObject, let masterKeyPath = self.masterKeyPath else { return }
+        guard let masterKeyPath = self.masterKeyPath else { return }
+        guard let masterObject = self.masterObject else {
+            self.items = []
+            contentConsumer?.renderContent(from: self)
+            return
+        }
         let value = masterObject.value(forKeyPath: masterKeyPath)
         if let items = ((value as? NSSet)?.allObjects ?? (value as? [Any])) as NSArray? {
             if let predicateFormat = self.predicateFormat {

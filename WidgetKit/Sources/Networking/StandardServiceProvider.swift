@@ -384,6 +384,25 @@ open class StandardServiceProvider: ServiceProvider {
     }
 }
 
+public extension StandardServiceProvider {
+    
+    func download(_ url: URL, progressHandler: @escaping (Progress) -> Void, completion: @escaping Completion) {
+        let destination: DownloadRequest.DownloadFileDestination = { _, _ in
+            let documentsPath = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)[0]
+            let documentsURL = URL(fileURLWithPath: documentsPath, isDirectory: true)
+            let fileURL = documentsURL.appendingPathComponent(url.lastPathComponent)
+            return (fileURL, [.removePreviousFile, .createIntermediateDirectories])
+        }
+        Alamofire.download(url, to: destination)
+        .downloadProgress { progress in
+            progressHandler(progress)
+        }
+        .responseData { response in
+            completion(response.destinationURL?.path, response.error)
+        }
+    }
+}
+
 extension StandardServiceProvider: NetworkDiagnosticsProtocol {
     
     public func before(action: String, request: URLRequest) {

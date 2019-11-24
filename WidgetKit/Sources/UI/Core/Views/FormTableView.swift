@@ -35,7 +35,7 @@ open class FormTableView: UITableView {
     open override var wx_fieldValue: Any? {
         get {
             guard let displayController = dataSource as? TableDisplayController else { return nil }
-            guard let objects = Array(displayController.selectedObjects) as? [NSManagedObject] else { return nil }
+            guard let objects = Array(displayController.selectedObjects) as? [NSManagedObject], objects.count > 0 else { return nil }
             var arr = [[String: Any]]()
             for object in objects {
                 var dict = json(fromObject: object)

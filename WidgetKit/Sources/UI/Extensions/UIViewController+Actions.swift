@@ -29,15 +29,19 @@ public extension UIViewController {
         dismiss(animated: true)
     }
     
-    func back() {
-        navigationController?.popViewController(animated: true)
+    func back(toRoot: Bool = false) {
+        if toRoot {
+            navigationController?.popToRootViewController(animated: true)
+        } else {
+            navigationController?.popViewController(animated: true)
+        }
     }
     
-    func close() {
+    func close(forced: Bool = false) {
         if presentingViewController != nil {
             dismiss()
         } else {
-            back()
+            back(toRoot: forced)
         }
     }
     

@@ -89,6 +89,8 @@ protocol NetworkRequestStatusProtocol {
 
 extension Notification.Name: NetworkRequestStatusProtocol {
     
+    public static var needAuthNotification = Notification.Name("needAuth")
+    
     public var onStart: Notification.Name {
         return Notification.Name(rawValue + "Start")
     }

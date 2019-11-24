@@ -123,11 +123,13 @@ open class ActionStatusController: CustomIBObject, ObserversStorageProtocol {
                     this.viewController?.refresh(elements: this.elements)
                     if let error = n.errorFromUserInfo {
                         this.owner?.statusChanged(this, args: n.argsFromUserInfo, result: nil, error: error)
-                        if this.needAuthErrorCodes.contains((error as NSError).code), let segue = this.needAuthSegue {
-                            this.viewController?.performSegue(withIdentifier: segue, sender: this)
-                        } else {
-                            this.viewController?.handleError(error, sender: this)
+                        if this.needAuthErrorCodes.contains((error as NSError).code) {
+                            Notification.Name.needAuthNotification.post()
+                            if let segue = this.needAuthSegue {
+                                this.viewController?.performSegue(withIdentifier: segue, sender: this)
+                            }
                         }
+                        this.viewController?.handleError(error, sender: this)
                     }
                 }
             }

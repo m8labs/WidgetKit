@@ -48,7 +48,10 @@ extension NSObject {
     }
 }
 
-public var WXCustomFailureReasonErrorKey = "reason"
+extension NSError {
+    
+    public static var CustomFailureReasonErrorKey = "reason"
+}
 
 extension Error {
     
@@ -61,7 +64,7 @@ extension Error {
     }
     
     public var customFailureReason: String? {
-        userInfo[WXCustomFailureReasonErrorKey] as? String
+        userInfo[NSError.CustomFailureReasonErrorKey] as? String
     }
     
     public var displayInfo: String {

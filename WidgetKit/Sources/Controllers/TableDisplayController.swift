@@ -90,10 +90,9 @@ open class TableDisplayController: BaseDisplayController {
     
     func reloadData(animated: Bool = false) {
         if animated {
-            if contentProvider != nil && contentProvider.sectionsCount > 0 {
-                tableView.reloadSections(IndexSet(integersIn: 0..<contentProvider.sectionsCount), with: .automatic)
-                fitContentIfNecessary()
-            }
+            UIView.transition(with: tableView, duration: 0.25, options: .transitionCrossDissolve, animations: { self.tableView.reloadData() }, completion: { _ in
+                self.fitContentIfNecessary()
+            })
         } else {
             tableView.reloadData()
             fitContentIfNecessary()

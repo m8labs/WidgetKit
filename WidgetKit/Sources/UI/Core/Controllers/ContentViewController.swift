@@ -25,7 +25,7 @@ import UIKit
 
 open class ContentViewController: UIViewController, ContentSchemedProtocol, ObserversStorageProtocol {
     
-    lazy public var elements: [NSObject] = { return Array(wx_elements.union(wx_navbarElements)) }()
+    lazy public var elements: [NSObject] = { return Array(wx_elements.union(wx_navbarElements.union(wx_toolbarElements))) }()
     
     @IBOutlet var objects: [NSObject]?
     
@@ -172,6 +172,23 @@ extension UIViewController {
         }
         let items = (navigationItem.leftBarButtonItems ?? []) + (navigationItem.rightBarButtonItems ?? [])
         items.forEach { item in
+            addElement(item)
+            addElement(item.customView)
+            item.customView?.allSubviews { view in
+                addElement(view)
+            }
+        }
+        return elements
+    }
+    
+    var wx_toolbarElements: Set<NSObject> {
+        var elements = Set<NSObject>()
+        func addElement(_ element: NSObject?) {
+            if element?.wx.identifier != nil || element?.wx.addBinding != nil {
+                elements.insert(element!)
+            }
+        }
+        toolbarItems?.forEach { item in
             addElement(item)
             addElement(item.customView)
             item.customView?.allSubviews { view in

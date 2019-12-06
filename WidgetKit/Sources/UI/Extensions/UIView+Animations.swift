@@ -25,7 +25,7 @@ import UIKit
 
 extension UIView {
     
-    public func shake(count: Float = 2, duration: TimeInterval = 0.1, translation: Float = 5) {
+    @objc public func shake(count: Float = 2, duration: TimeInterval = 0.1, translation: Float = 5) {
         let animation: CABasicAnimation = CABasicAnimation(keyPath: "transform.translation.x")
         animation.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionLinear)
         animation.repeatCount = count

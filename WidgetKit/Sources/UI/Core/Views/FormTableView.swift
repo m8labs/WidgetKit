@@ -26,6 +26,8 @@ import Groot
 
 open class FormTableView: UITableView {
     
+    @IBOutlet var emptyView: UIView?
+    
     @objc public var allowedKeys: String?
     
     lazy var allowedKeysArray: Set<String> = {
@@ -49,5 +51,10 @@ open class FormTableView: UITableView {
             return arr
         }
         set { }
+    }
+    
+    public override func shake(count: Float, duration: TimeInterval, translation: Float) {
+        super.shake(count: count, duration: duration, translation: translation)
+        emptyView?.shake(count: count, duration: duration, translation: translation)
     }
 }

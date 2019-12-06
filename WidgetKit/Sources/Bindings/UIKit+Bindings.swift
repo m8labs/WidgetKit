@@ -60,17 +60,41 @@ extension UIView {
 @objc
 extension UIImageView {
     
-    open var wx_imageUrl: String? {
-        get { return nil }
+    private static var placeholderKey: String?
+    
+    private static var imageUrlKey: String?
+    
+    open var wx_placeholder: Any? {
+        get { return objc_getAssociatedObject(self, &UIImageView.placeholderKey) }
         set {
-            image = nil
-            if let placeholder = wx.valueBinding?.placeholder {
-                image = UIImage(named: placeholder)
+            var image: UIImage? = nil
+            if let string = newValue as? String {
+                image = UIImage(named: string)
+            } else if let img = newValue as? UIImage {
+                image = img
             }
-            if let url = newValue {
-                af_setImage(withURL: URL(string: url)!)
+            objc_setAssociatedObject(self, &UIImageView.placeholderKey, image, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+    
+    open var wx_imageUrl: URL? {
+        get { return objc_getAssociatedObject(self, &UIImageView.imageUrlKey) as? URL }
+        set {
+            objc_setAssociatedObject(self, &UIImageView.imageUrlKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            let url = newValue
+            async { // to guarantee wx_placeholder has been set before this
+                guard url == self.wx_imageUrl else { return }
+                if url != nil {
+                    self.af_setImage(withURL: url!, placeholderImage: self.wx_placeholder as? UIImage)
+                } else {
+                    self.image = self.wx_placeholder as? UIImage
+                }
             }
         }
+    }
+    
+    open var wx_isPlaceholder: Bool {
+        return image != nil && (objc_getAssociatedObject(self, &UIImageView.placeholderKey) as? UIImage === image)
     }
     
     open var wx_imageName: String? {
@@ -84,27 +108,23 @@ extension UIImageView {
         }
     }
     
-    open var wx_autoValue: Any? {
-        get { return nil }
+    open override var wx_value: Any? {
+        get { return wx_isPlaceholder ? nil : image }
         set {
             if let string = newValue as? String {
                 if string.hasPrefix("http") {
-                    wx_imageUrl = string
+                    wx_imageUrl = URL(string: string)
                 } else {
                     wx_imageName = string
                 }
             } else if let url = newValue as? URL {
-                image = nil
-                af_setImage(withURL: url)
-            } else {
-                wx_value = newValue
+                wx_imageUrl = url
+            } else if newValue is UIImage {
+                image = newValue as? UIImage
+            } else if newValue == nil {
+                wx_imageUrl = nil
             }
         }
-    }
-    
-    open override var wx_value: Any? {
-        get { return image }
-        set { image = newValue as? UIImage }
     }
 }
 
@@ -161,6 +181,11 @@ extension UIButton {
     open override var wx_value: Any? {
         get { return title(for: .normal) }
         set { setTitle("\(newValue ?? "")", for: .normal) }
+    }
+    
+    open var wx_normalImage: UIImage? {
+        get { return image(for: .normal) }
+        set { setImage(newValue, for: .normal) }
     }
     
     open override var wx_disabled: Bool {

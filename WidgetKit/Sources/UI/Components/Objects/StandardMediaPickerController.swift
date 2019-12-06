@@ -60,13 +60,13 @@ public class PHAssetView: UIImageView {
         }
     }
     
-    override open var wx_autoValue: Any? {
-        get { return super.wx_autoValue }
+    override open var wx_value: Any? {
+        get { return super.wx_value }
         set {
             if let value = newValue as? PHAsset {
                 asset = value
             } else {
-                super.wx_autoValue = newValue
+                super.wx_value = newValue
             }
         }
     }

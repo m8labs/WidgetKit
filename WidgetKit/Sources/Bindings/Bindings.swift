@@ -202,10 +202,6 @@ public class ObjectAssistant: NSObject {
     
     @objc public lazy var layoutHint = LayoutHint()
     
-    var valueBinding: Binding? {
-        return bindings[ObjectAssistant.valuePropertyName]
-    }
-    
     init(for object: NSObject) {
         super.init()
         self.object = object

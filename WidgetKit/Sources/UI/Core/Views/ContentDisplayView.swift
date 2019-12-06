@@ -107,6 +107,7 @@ open class ContentDisplayView: UIView, ContentSchemedProtocol, ObserversStorageP
     }
     
     open func refresh(elements: [NSObject]? = nil) {
+        vars.setValue(DefaultSettings.shared, forKey: DefaultSettings.settingsKey)
         vars.setValue(content, forKey: ObjectsDictionaryProxy.contentKey)
         (elements ?? self.elements)?.forEach { element in
             let info = element.wx.setupObject(using: vars, bind: false)

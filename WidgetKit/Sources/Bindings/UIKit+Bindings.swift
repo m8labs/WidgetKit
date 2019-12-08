@@ -77,11 +77,22 @@ extension UIImageView {
         }
     }
     
+    private func cachedImage(url: URL) -> UIImage? {
+        let imageCache = UIImageView.af_sharedImageDownloader.imageCache
+        let image = imageCache?.image(for: URLRequest(url: url), withIdentifier: nil)
+        return image
+    }
+    
     open var wx_imageUrl: URL? {
         get { return objc_getAssociatedObject(self, &UIImageView.imageUrlKey) as? URL }
         set {
             objc_setAssociatedObject(self, &UIImageView.imageUrlKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             let url = newValue
+            if url != nil {
+                image = cachedImage(url: url!)
+            } else {
+                image = nil
+            }
             async { // to guarantee wx_placeholder has been set before this
                 guard url == self.wx_imageUrl else { return }
                 if url != nil {

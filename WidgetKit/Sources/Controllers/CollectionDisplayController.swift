@@ -44,6 +44,8 @@ open class CollectionDisplayController: BaseDisplayController {
     
     @objc public var cellHeightHint: CGFloat = -1
     
+    @objc public var cellAspectRatio: CGFloat = -1
+    
     @IBOutlet public var collectionView: UICollectionView! {
         get {
             guard let view = elements?.first as? UICollectionView else {
@@ -87,8 +89,8 @@ open class CollectionDisplayController: BaseDisplayController {
         if let contentView = cell.contentDisplayView {
             contentView.widget = widget
             contentView.scheme = viewController?.scheme
-            contentView.content = object
         }
+        cell.content = object
     }
     
     open override func renderContent(from source: ContentProviderProtocol?) {
@@ -182,6 +184,7 @@ extension CollectionDisplayController: UICollectionViewDelegate {
             handleSelectionForCell(cell, object: object, at: indexPath)
         }
         cellSelected?(cell, object, indexPath)
+        collectionView.reloadData()
     }
     
     open func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
@@ -191,12 +194,21 @@ extension CollectionDisplayController: UICollectionViewDelegate {
             handleDeselectionForCell(cell, object: object, at: indexPath)
         }
         cellDeselected?(cell, object, indexPath)
+        collectionView.reloadData()
     }
     
     open func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         guard handleSelection, let object = contentProvider.item(at: indexPath) as? NSObject else { return }
         let isSelected = selectedObjects.contains(object)
         cell.isSelected = isSelected
+    }
+    
+    open func selectObjects(_ objects: [NSObject]) {
+        selectedObjects.removeAll()
+        objects.forEach { object in
+            selectedObjects.insert(object)
+        }
+        collectionView?.reloadData()
     }
 }
 
@@ -206,21 +218,36 @@ extension CollectionDisplayController: UICollectionViewDelegateFlowLayout {
     
     var itemSize: CGSize {
         if cachedItemSize == nil {
-            let layout = collectionView!.collectionViewLayout as? UICollectionViewFlowLayout
-            var width = layout?.itemSize.width ?? collectionView!.bounds.width
-            var height = layout?.itemSize.height ?? collectionView!.bounds.height
-            if cellWidthHint >= 0 {
+            let flowLayout = collectionView!.collectionViewLayout as? UICollectionViewFlowLayout
+            var width = collectionView!.bounds.width
+            var height = collectionView!.bounds.height
+            let vSpacing = flowLayout?.minimumInteritemSpacing ?? 0
+            let hSpacing = flowLayout?.minimumLineSpacing ?? 0
+            if cellWidthHint > 0 {
                 if cellWidthHint <= 1 {
-                    width = collectionView!.bounds.width * cellWidthHint
+                    let hNumber = 1.0 / cellWidthHint
+                    width = (collectionView!.bounds.width - vSpacing * (hNumber - 1)) * cellWidthHint
                 } else {
                     width = cellWidthHint
                 }
+            } else if flowLayout != nil {
+                width = flowLayout!.itemSize.width
             }
-            if cellHeightHint >= 0 {
+            if cellHeightHint > 0 {
                 if cellHeightHint <= 1 {
-                    height = collectionView!.bounds.height * cellHeightHint
+                    let vNumber = 1.0 / cellHeightHint
+                    height = (collectionView!.bounds.height - hSpacing * (vNumber - 1)) * cellHeightHint
                 } else {
                     height = cellHeightHint
+                }
+            } else if flowLayout != nil {
+                height = flowLayout!.itemSize.height
+            }
+            if flowLayout != nil, cellAspectRatio > 0 {
+                if flowLayout!.scrollDirection == .vertical {
+                    height = width * cellAspectRatio
+                } else {
+                    width = height * cellAspectRatio
                 }
             }
             cachedItemSize = CGSize(width: width, height: height)
@@ -252,8 +279,9 @@ open class ContentCollectionViewCell: UICollectionViewCell, ContentAwareProtocol
         contentView as? ContentDisplayView ?? contentView.subviews.first as? ContentDisplayView
     }
     
-    public var content: Any? {
-        get { return contentDisplayView?.content }
-        set { contentDisplayView?.content = newValue }
+    open var content: Any? {
+        didSet {
+            contentDisplayView?.content = content
+        }
     }
 }

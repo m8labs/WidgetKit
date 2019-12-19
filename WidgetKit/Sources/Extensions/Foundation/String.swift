@@ -65,7 +65,6 @@ public extension String {
             let size = CGSize(width: width, height: .greatestFiniteMagnitude)
             let container = NSTextContainer(size: size)
             container.lineFragmentPadding = 0
-            container.lineBreakMode = .byCharWrapping
             return container
         }()
         let textStorage = NSTextStorage(string: self, attributes: [

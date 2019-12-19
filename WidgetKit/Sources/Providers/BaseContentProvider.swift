@@ -248,6 +248,10 @@ open class ItemsContentProvider: BaseContentProvider {
         return items[indexPath.section][indexPath.item]
     }
     
+    override public func indexPath(for item: Any) -> IndexPath? {
+        return nil
+    }
+    
     override open func reset() {
         items.removeAll()
         contentConsumer?.renderContent(from: self)

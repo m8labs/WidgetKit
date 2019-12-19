@@ -386,11 +386,14 @@ open class StandardServiceProvider: ServiceProvider {
 
 public extension StandardServiceProvider {
     
+    static var cachesDirectory: String = {
+        let path = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)[0]
+        return path
+    }()
+    
     func download(_ url: URL, progressHandler: @escaping (Progress) -> Void, completion: @escaping Completion) {
         let destination: DownloadRequest.DownloadFileDestination = { _, _ in
-            let documentsPath = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)[0]
-            let documentsURL = URL(fileURLWithPath: documentsPath, isDirectory: true)
-            let fileURL = documentsURL.appendingPathComponent(url.lastPathComponent)
+            let fileURL = URL(fileURLWithPath: Self.cachesDirectory, isDirectory: true).appendingPathComponent(url.lastPathComponent)
             return (fileURL, [.removePreviousFile, .createIntermediateDirectories])
         }
         Alamofire.download(url, to: destination)

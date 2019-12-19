@@ -66,6 +66,7 @@ public extension NSPersistentContainer {
     func enqueueBackgroundTask(_ closure: @escaping (NSManagedObjectContext)->Void) {
         NSPersistentContainer.defaultQueue.addOperation {
             let context = self.newBackgroundContext()
+            context.mergePolicy = NSMergePolicy(merge: NSMergePolicyType.mergeByPropertyObjectTrumpMergePolicyType)
             context.performAndWait {
                 closure(context)
             }

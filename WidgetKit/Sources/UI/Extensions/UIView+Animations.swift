@@ -44,8 +44,12 @@ extension UIView {
             if isHidden {
                 alpha = 0
                 isHidden = false
+                UIView.animate(withDuration: 0.25) { self.alpha = newValue }
+            } else {
+                UIView.animate(withDuration: 0.25, animations: { self.alpha = 0 }) { _ in
+                    self.isHidden = true
+                }
             }
-            UIView.animate(withDuration: 0.25) { self.alpha = newValue }
         }
     }
 }

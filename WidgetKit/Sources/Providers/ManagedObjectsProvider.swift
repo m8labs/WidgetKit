@@ -29,6 +29,7 @@ open class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsControll
     @objc public var entityName: String?
     @objc public var groupByField: String?
     @objc public var cacheName: String?
+    @objc public var fetchBatchSize: Int = 0
     
     var _fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult>?
     
@@ -126,6 +127,7 @@ open class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsControll
             sortDescriptors.insert(NSSortDescriptor(key: groupByField!, ascending: sortAscending), at: 0)
         }
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>()
+        fetchRequest.fetchBatchSize = fetchBatchSize
         fetchRequest.entity = NSEntityDescription.entity(forEntityName: entityName!, in: managedObjectContext)!
         fetchRequest.sortDescriptors = sortDescriptors
         fetchRequest.predicate = predicate()

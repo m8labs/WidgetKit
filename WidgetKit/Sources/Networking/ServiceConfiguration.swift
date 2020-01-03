@@ -88,11 +88,24 @@ open class ServiceConfiguration {
         loadFrom(resource: resource, bundle: bundle)
     }
     
+    public var proto: String?
+    
+    public var address: String?
+    
+    public var port: Int?
+    
+    public var configBaseUrl: String {
+        let proto = configDict?.value(forKeyPath: "defaults.proto") as? String ?? "http"
+        let address = configDict?.value(forKeyPath: "defaults.address") as? String ?? "localhost"
+        let port = configDict?.value(forKeyPath: "defaults.port") as? Int ?? 80
+        return "\(proto)://\(address):\(port)/"
+    }
+    
     public var baseUrl: String {
-        if let url = configDict?.value(forKeyPath: "defaults.baseUrl") as? String {
-            return url.hasSuffix("/") ? url : "\(url)/"
-        }
-        return "http://localhost/"
+        let proto = (self.proto ?? Self.defaultProto) ?? (configDict?.value(forKeyPath: "defaults.proto") as? String ?? "http")
+        let address = (self.address ?? Self.defaultAddress) ?? (configDict?.value(forKeyPath: "defaults.address") as? String ?? "localhost")
+        let port = (self.port ?? Self.defaultPort) ?? (configDict?.value(forKeyPath: "defaults.port") as? Int ?? 80)
+        return "\(proto)://\(address):\(port)/"
     }
     
     public var apiPath: String {
@@ -234,4 +247,13 @@ open class ServiceConfiguration {
         }
         return (request: request, body: parameters)
     }
+}
+
+public extension ServiceConfiguration {
+    
+    static var defaultProto: String?
+    
+    static var defaultAddress: String?
+    
+    static var defaultPort: Int?
 }

@@ -46,7 +46,9 @@ open class TableDisplayController: BaseDisplayController {
     
     @objc public var handleSelection = false
     
-    @objc public var defaultSelectionBehavior = false
+    @objc public var showSelectionAccessory = true
+    
+    @objc public var checkmarkImageName: String?
     
     public var cellSelected: ((ContentTableViewCell, Any, IndexPath) -> Void)?
     
@@ -245,7 +247,9 @@ extension TableDisplayController: UITableViewDelegate {
                 selectedObjects.removeAll()
             }
             selectedObjects.insert(object)
-            if defaultSelectionBehavior {
+            if let imageName = self.checkmarkImageName, let image = UIImage(named: imageName) {
+                cell.accessoryView = UIImageView(image: image)
+            } else {
                 cell.accessoryType = .checkmark
             }
             cell.isSelected = true
@@ -254,9 +258,8 @@ extension TableDisplayController: UITableViewDelegate {
     
     private func handleDeselectionForCell(_ cell: UITableViewCell, object: NSObject, at indexPath: IndexPath) {
         selectedObjects.remove(object)
-        if defaultSelectionBehavior {
-            cell.accessoryType = .none
-        }
+        cell.accessoryType = .none
+        cell.accessoryView = nil
         cell.isSelected = false
     }
     
@@ -283,12 +286,28 @@ extension TableDisplayController: UITableViewDelegate {
     }
     
     open func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-        guard handleSelection, let object = contentProvider.item(at: indexPath) as? NSObject else { return }
+        guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
         let isSelected = selectedObjects.contains(object)
-        cell.isSelected = isSelected
-        if defaultSelectionBehavior {
-            cell.accessoryType = isSelected ? .checkmark : .none
+        cell.isSelected = handleSelection && isSelected
+        guard showSelectionAccessory else { return }
+        if isSelected {
+            if let imageName = self.checkmarkImageName, let image = UIImage(named: imageName) {
+                cell.accessoryView = UIImageView(image: image)
+            } else {
+                cell.accessoryType = .checkmark
+            }
+        } else {
+            cell.accessoryType = .none
+            cell.accessoryView = nil
         }
+    }
+    
+    open func selectObjects(_ objects: [NSObject]) {
+        selectedObjects.removeAll()
+        objects.forEach { object in
+            selectedObjects.insert(object)
+        }
+        tableView?.reloadData()
     }
     
     // Header/Footer views

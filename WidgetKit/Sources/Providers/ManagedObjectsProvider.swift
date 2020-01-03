@@ -167,8 +167,7 @@ extension ManagedObjectsProvider {
             contentConsumer?.renderContent(anObject, change: .delete, at: indexPath, from: self)
         }
         else if type == .move, let oldIndexPath = indexPath, let newIndexPath = newIndexPath, newIndexPath != oldIndexPath {
-            contentConsumer?.renderContent(anObject, change: .delete, at: oldIndexPath, from: self)
-            contentConsumer?.renderContent(anObject, change: .insert, at: newIndexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .move, at: oldIndexPath, from: self)
         }
     }
 }

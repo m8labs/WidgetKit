@@ -24,7 +24,7 @@
 import UIKit
 
 public enum ContentChange: UInt {
-    case insert, delete, update
+    case insert, delete, update, move
 }
 
 public protocol ContentConsumerProtocol: class {

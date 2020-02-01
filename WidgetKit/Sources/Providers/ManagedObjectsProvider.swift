@@ -97,7 +97,39 @@ open class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsControll
         return count > 0 && indexPath.item < count ? fetchedResultsController.object(at: indexPath) : nil
     }
     
-    override open func indexPath(for item: Any) -> IndexPath? {
+    open func indexPath(before indexPath: IndexPath) -> IndexPath? {
+        var count = itemsCountInSection(indexPath.section)
+        var newIndexPath = count > 0 && indexPath.item - 1 >= 0 && indexPath.item - 1 < count ?
+            IndexPath(item: indexPath.item - 1, section: indexPath.section) : nil
+        if newIndexPath == nil, indexPath.section - 1 >= 0, sectionsCount > 1 {
+            count = itemsCountInSection(indexPath.section - 1)
+            newIndexPath = count > 0 ? IndexPath(item: count - 1, section: indexPath.section - 1) : nil
+        }
+        return newIndexPath
+    }
+    
+    open func indexPath(after indexPath: IndexPath) -> IndexPath? {
+        var count = itemsCountInSection(indexPath.section)
+        var newIndexPath = count > 0 && indexPath.item + 1 >= 0 && indexPath.item + 1 < count ?
+            IndexPath(item: indexPath.item + 1, section: indexPath.section) : nil
+        if newIndexPath == nil, indexPath.section + 1 < sectionsCount {
+            count = itemsCountInSection(indexPath.section + 1)
+            newIndexPath = count > 0 ? IndexPath(item: 0, section: indexPath.section + 1) : nil
+        }
+        return newIndexPath
+    }
+    
+    open func item(before aIndexPath: IndexPath) -> Any? {
+        guard let indexPath = indexPath(before: aIndexPath) else { return nil }
+        return fetchedResultsController.object(at: indexPath)
+    }
+    
+    open func item(after aIndexPath: IndexPath) -> Any? {
+        guard let indexPath = indexPath(after: aIndexPath) else { return nil }
+        return fetchedResultsController.object(at: indexPath)
+    }
+    
+    @objc override open func indexPath(for item: Any) -> IndexPath? {
         return fetchedResultsController.indexPath(forObject: item as! NSFetchRequestResult)
     }
     

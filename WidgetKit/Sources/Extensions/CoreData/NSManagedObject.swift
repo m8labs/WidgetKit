@@ -35,10 +35,14 @@ public extension NSManagedObject {
                        with predicate: NSPredicate? = nil,
                        sortByFields: [String]? = nil,
                        sortAscending: Bool = true,
-                       context: NSManagedObjectContext = NSManagedObjectContext.main) -> [NSManagedObject] {
+                       takeFirst: Int = 0,
+                       context: NSManagedObjectContext) -> [NSManagedObject] {
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>()
         fetchRequest.entity = NSEntityDescription.entity(forEntityName: entityName, in: context)
         fetchRequest.predicate = predicate
+        if takeFirst > 0 {
+            fetchRequest.fetchLimit = takeFirst
+        }
         if let sortFields = sortByFields {
             var sortDescriptors = [NSSortDescriptor]()
             for fieldName: String in sortFields {
@@ -53,9 +57,10 @@ public extension NSManagedObject {
     class func objects<T: NSManagedObject>(with predicate: NSPredicate? = nil,
                                            sortByFields: [String]? = nil,
                                            sortAscending: Bool = true,
+                                           takeFirst: Int = 0,
                                            context: NSManagedObjectContext = NSManagedObjectContext.main) -> [T] {
         let entityName = "\(self)"
-        return objects(of: entityName, with: predicate, sortByFields: sortByFields, sortAscending: sortAscending, context: context) as! [T]
+        return objects(of: entityName, with: predicate, sortByFields: sortByFields, sortAscending: sortAscending, takeFirst: takeFirst, context: context) as! [T]
     }
     
     class func all<T: NSManagedObject>(context: NSManagedObjectContext = NSManagedObjectContext.main) -> [T] {

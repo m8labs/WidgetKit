@@ -121,3 +121,18 @@ open class DefaultSettings: NSObject {
         return value
     }
 }
+
+public extension DefaultSettings {
+    
+    @objc var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+    }
+    
+    @objc var appBuildNumber: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+    }
+    
+    @objc var appVersionFull: String? {
+        "\(appVersion) (\(appBuildNumber))"
+    }
+}

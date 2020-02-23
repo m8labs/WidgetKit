@@ -388,40 +388,6 @@ extension UIImage {
     public static let defaultJPEGCompression: CGFloat = 0.9
 }
 
-public extension CGSize {
-    
-    var previewSizeInPixels: CGSize {
-        let w = width
-        let h = height
-        guard w > 0, h > 0 else { return CGSize.zero }
-        let maxS = max(w, h)
-        let minS = min(w, h)
-        let f = CGFloat(minS) / CGFloat(maxS) // f <= 1.0
-        let largestSide = DefaultSettings.shared.previewLargestSideInPixels
-        if w > h {
-            return CGSize(width: largestSide, height: ceil(largestSide * f)) // horizontal image
-        } else {
-            return CGSize(width: ceil(largestSide * f), height: largestSide) // vertical image
-        }
-    }
-    
-    var previewSizeInPoints: CGSize {
-        let pxSize = previewSizeInPixels
-        return CGSize(width: pxSize.width / UIScreen.main.scale, height: pxSize.height / UIScreen.main.scale)
-    }
-}
-
-public extension PHAsset {
-    
-    var previewSizeInPixels: CGSize {
-        return CGSize(width: pixelWidth, height: pixelHeight).previewSizeInPixels
-    }
-    
-    var previewSizeInPoints: CGSize {
-        return CGSize(width: pixelWidth, height: pixelHeight).previewSizeInPoints
-    }
-}
-
 public extension URL {
     
     var contentDimensions: CGSize? {

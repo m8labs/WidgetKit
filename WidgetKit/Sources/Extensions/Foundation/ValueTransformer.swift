@@ -93,7 +93,7 @@ extension ValueTransformer {
         }
     }
     
-    static func setDefaultTransformers() {
+    public static func setDefaultTransformers() {
         func toString(_ value: Any) -> String? {
             return String(describing: value)
         }

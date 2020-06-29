@@ -182,9 +182,9 @@ extension CollectionDisplayController: UICollectionViewDelegate {
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
         if handleSelection {
             handleSelectionForCell(cell, object: object, at: indexPath)
+            collectionView.reloadData()
         }
         cellSelected?(cell, object, indexPath)
-        collectionView.reloadData()
     }
     
     open func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
@@ -192,9 +192,9 @@ extension CollectionDisplayController: UICollectionViewDelegate {
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
         if handleSelection {
             handleDeselectionForCell(cell, object: object, at: indexPath)
+            collectionView.reloadData()
         }
         cellDeselected?(cell, object, indexPath)
-        collectionView.reloadData()
     }
     
     open func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {

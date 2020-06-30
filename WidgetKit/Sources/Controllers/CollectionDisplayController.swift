@@ -221,12 +221,14 @@ extension CollectionDisplayController: UICollectionViewDelegateFlowLayout {
             let flowLayout = collectionView!.collectionViewLayout as? UICollectionViewFlowLayout
             var width = collectionView!.bounds.width
             var height = collectionView!.bounds.height
-            let vSpacing = flowLayout?.minimumInteritemSpacing ?? 0
-            let hSpacing = flowLayout?.minimumLineSpacing ?? 0
+            let itemSpacing = flowLayout?.minimumInteritemSpacing ?? 0
+            let lineSpacing = flowLayout?.minimumLineSpacing ?? 0
+            let insetsWidth = (flowLayout?.sectionInset.left ?? 0) + (flowLayout?.sectionInset.right ?? 0)
+            let insetsHeight = (flowLayout?.sectionInset.top ?? 0) + (flowLayout?.sectionInset.bottom ?? 0)
             if cellWidthHint > 0 {
                 if cellWidthHint <= 1 {
                     let hNumber = 1.0 / cellWidthHint
-                    width = (collectionView!.bounds.width - vSpacing * (hNumber - 1)) * cellWidthHint
+                    width = (collectionView!.bounds.width - insetsWidth - itemSpacing * (hNumber - 1)) * cellWidthHint
                 } else {
                     width = cellWidthHint
                 }
@@ -236,7 +238,7 @@ extension CollectionDisplayController: UICollectionViewDelegateFlowLayout {
             if cellHeightHint > 0 {
                 if cellHeightHint <= 1 {
                     let vNumber = 1.0 / cellHeightHint
-                    height = (collectionView!.bounds.height - hSpacing * (vNumber - 1)) * cellHeightHint
+                    height = (collectionView!.bounds.height - insetsHeight - lineSpacing * (vNumber - 1)) * cellHeightHint
                 } else {
                     height = cellHeightHint
                 }

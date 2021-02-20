@@ -24,7 +24,7 @@
 import UIKit
 import Groot
 
-open class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsControllerDelegate {
+open class ManagedObjectsProvider: BaseContentProvider {
     
     @objc public var entityName: String?
     @objc public var groupByField: String?
@@ -178,7 +178,7 @@ open class ManagedObjectsProvider: BaseContentProvider, NSFetchedResultsControll
     }
 }
 
-extension ManagedObjectsProvider {
+extension ManagedObjectsProvider: NSFetchedResultsControllerDelegate {
     
     open func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         contentConsumer?.prepareRenderContent(from: self)
@@ -190,16 +190,16 @@ extension ManagedObjectsProvider {
     
     open func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         if type == .insert, let newIndexPath = newIndexPath {
-            contentConsumer?.renderContent(anObject, change: .insert, at: newIndexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .insert(newIndexPath), from: self)
         }
         else if type == .update, let indexPath = indexPath {
-            contentConsumer?.renderContent(anObject, change: .update, at: indexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .update(indexPath), from: self)
         }
         else if type == .delete, let indexPath = indexPath {
-            contentConsumer?.renderContent(anObject, change: .delete, at: indexPath, from: self)
+            contentConsumer?.renderContent(anObject, change: .delete(indexPath), from: self)
         }
-        else if type == .move, let oldIndexPath = indexPath, let newIndexPath = newIndexPath, newIndexPath != oldIndexPath {
-            contentConsumer?.renderContent(anObject, change: .move, at: newIndexPath, from: self)
+        else if type == .move, let indexPath = indexPath, let newIndexPath = newIndexPath, newIndexPath != indexPath {
+            contentConsumer?.renderContent(anObject, change: .move(from: indexPath, to: newIndexPath), from: self)
         }
     }
 }

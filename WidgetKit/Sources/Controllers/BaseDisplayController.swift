@@ -23,8 +23,8 @@
 
 import UIKit
 
-public enum ContentChange: UInt {
-    case insert, delete, update, move
+public enum ContentChange {
+    case insert(IndexPath), delete(IndexPath), update(IndexPath), move(from: IndexPath, to: IndexPath)
 }
 
 public protocol ContentConsumerProtocol: class {
@@ -33,7 +33,7 @@ public protocol ContentConsumerProtocol: class {
     
     func prepareRenderContent(from source: ContentProviderProtocol?)
     
-    func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?)
+    func renderContent(_ content: Any, change: ContentChange, from source: ContentProviderProtocol?)
     
     func finalizeRenderContent(from source: ContentProviderProtocol?)
 }
@@ -71,7 +71,7 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
     
     open func prepareRenderContent(from source: ContentProviderProtocol?) { }
     
-    open func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?) { }
+    open func renderContent(_ content: Any, change: ContentChange, from source: ContentProviderProtocol?) { }
     
     open func finalizeRenderContent(from source: ContentProviderProtocol?) {
         viewController?.refresh(elements: elements)

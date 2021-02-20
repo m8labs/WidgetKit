@@ -151,7 +151,7 @@ open class TableDisplayController: BaseDisplayController {
     
     fileprivate var needsReload = false
     
-    override open func renderContent(_ content: Any, change: ContentChange, at indexPath: IndexPath, from source: ContentProviderProtocol?) {
+    override open func renderContent(_ content: Any, change: ContentChange, from source: ContentProviderProtocol?) {
         // This looks bad even with .none!
 //        switch change {
 //        case .insert:
@@ -160,8 +160,10 @@ open class TableDisplayController: BaseDisplayController {
 //            tableView.deleteRows(at: [indexPath], with: animateReload ? .automatic : .none)
 //        case .update:
 //            tableView.reloadRows(at: [indexPath], with: animateReload ? .automatic : .none)
+//        case .move(let toIndexPath):
+//            tableView.moveRow(at: indexPath, to: toIndexPath)
 //        }
-        if change == .delete {
+        if case .delete(let indexPath) = change {
             needsReload = false
             tableView.deleteRows(at: [indexPath], with: .automatic)
         } else {

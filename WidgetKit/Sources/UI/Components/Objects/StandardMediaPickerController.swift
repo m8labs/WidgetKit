@@ -232,23 +232,26 @@ public extension StandardMediaPickerController {
         let options = PHImageRequestOptions()
         options.version = .current
         options.isNetworkAccessAllowed = true
-        options.deliveryMode = .highQualityFormat
-        options.progressHandler = { percent, error, _, _ in
-            progress(Float(percent))
-        }
-        if targetSize != nil {
-            PHImageManager.default().requestImage(for: asset, targetSize: targetSize!, contentMode: .aspectFill, options: options) { image, info in
-                guard let image = image else {
-                    return completion(nil, info?[PHImageErrorKey] as? Error)
-                }
-                asyncGlobal {
-                    let data = UIImageJPEGRepresentation(image, UIImage.defaultJPEGCompression)
+        if let targetSize = targetSize {
+            options.isSynchronous = true
+            asyncGlobal {
+                PHImageManager.default().requestImage(for: asset, targetSize: targetSize, contentMode: .aspectFill, options: options) { image, info in
+                    guard let image = image else {
+                        return asyncMain {
+                            completion(nil, info?[PHImageErrorKey] as? Error)
+                        }
+                    }
+                    let resizedImage = image.sizedToFit(targetSize)
+                    let data = UIImageJPEGRepresentation(resizedImage, UIImage.defaultJPEGCompression)
                     asyncMain {
                         completion(data, nil)
                     }
                 }
             }
         } else {
+            options.progressHandler = { percent, error, _, _ in
+                progress(Float(percent))
+            }
             PHImageManager.default().requestImageData(for: asset, options: options) { data, dataUti, orientation, info in
                 guard let data = data else {
                     return completion(nil, info?[PHImageErrorKey] as? Error)
@@ -432,5 +435,29 @@ extension PHAsset {
     
     func tmpImagePath(with tag: String) -> String {
         return NSTemporaryDirectory() + "tmp\(localIdentifier.replacingOccurrences(of: "/", with: "-"))-\(tag).jpeg"
+    }
+}
+
+extension UIImage {
+    
+    func sizeThatFits(_ fitSize: CGSize) -> CGSize {
+        let aspectRatio = size.width / size.height
+        if aspectRatio > 1 {
+            return CGSize(width: fitSize.width, height: fitSize.width / aspectRatio)
+        } else {
+            return CGSize(width: fitSize.height * aspectRatio, height: fitSize.height)
+        }
+    }
+    
+    func sizedTo(_ size: CGSize) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: CGSize(width: size.width + 1, height: size.height + 1))) // +1 crops last row/colomn - they can be empty because of inaccuracy in resizing
+        }
+    }
+    
+    func sizedToFit(_ size: CGSize) -> UIImage {
+        sizedTo(sizeThatFits(size))
     }
 }

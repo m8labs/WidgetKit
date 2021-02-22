@@ -118,6 +118,11 @@ open class CollectionDisplayController: BaseDisplayController {
         vars = ObjectsDictionaryProxy(copy: viewController!.vars)
         return prepared
     }
+    
+    @available(iOS 11.0, *)
+    open func moveObject(_ object: Any, from: IndexPath, to: IndexPath) {
+        //
+    }
 }
 
 extension CollectionDisplayController {
@@ -284,6 +289,45 @@ open class ContentCollectionViewCell: UICollectionViewCell, ContentAwareProtocol
     open var content: Any? {
         didSet {
             contentDisplayView?.content = content
+        }
+    }
+}
+
+extension CollectionDisplayController: UICollectionViewDragDelegate {
+
+    @available(iOS 11.0, *)
+    public func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+        guard let object = contentProvider.item(at: indexPath) else { preconditionFailure("Cell's object should not be nil.") }
+        let itemProvider = NSItemProvider(object: "\(indexPath)" as NSString)
+        let dragItem = UIDragItem(itemProvider: itemProvider)
+        dragItem.localObject = object
+        return [dragItem]
+    }
+}
+
+extension CollectionDisplayController: UICollectionViewDropDelegate {
+    
+    @available(iOS 11.0, *)
+    public func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
+        guard let destinationIndexPath = coordinator.destinationIndexPath, coordinator.proposal.operation == .move else {
+            return
+        }
+        if coordinator.items.count == 1, let item = coordinator.items.first,
+           let sourceIndexPath = item.sourceIndexPath, let object = item.dragItem.localObject {
+            moveObject(object, from: sourceIndexPath, to: destinationIndexPath)
+            collectionView.performBatchUpdates ({
+                collectionView.deleteItems(at: [sourceIndexPath])
+                collectionView.insertItems(at: [destinationIndexPath])
+            })
+        }
+    }
+    
+    @available(iOS 11.0, *)
+    public func collectionView(_ collectionView: UICollectionView, dropSessionDidUpdate session: UIDropSession, withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
+        if collectionView.hasActiveDrag, let _ = destinationIndexPath {
+            return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
+        } else {
+            return UICollectionViewDropProposal(operation: .forbidden)
         }
     }
 }

@@ -315,10 +315,6 @@ extension CollectionDisplayController: UICollectionViewDropDelegate {
         if coordinator.items.count == 1, let item = coordinator.items.first,
            let sourceIndexPath = item.sourceIndexPath, let object = item.dragItem.localObject {
             moveObject(object, from: sourceIndexPath, to: destinationIndexPath)
-            collectionView.performBatchUpdates ({
-                collectionView.deleteItems(at: [sourceIndexPath])
-                collectionView.insertItems(at: [destinationIndexPath])
-            })
         }
     }
     

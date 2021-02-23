@@ -25,10 +25,10 @@ import Groot
 
 public extension NSPersistentContainer {
     
-    private static var defaultQueue: OperationQueue = {
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 1
-        return queue
+    private static var defaultBackgroundContext: NSManagedObjectContext = {
+        let context = `default`.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: NSMergePolicyType.mergeByPropertyObjectTrumpMergePolicyType)
+        return context
     }()
     
     static var `default`: NSPersistentContainer = {
@@ -63,13 +63,10 @@ public extension NSPersistentContainer {
         return container
     }
     
-    func enqueueBackgroundTask(_ closure: @escaping (NSManagedObjectContext)->Void) {
-        NSPersistentContainer.defaultQueue.addOperation {
-            let context = self.newBackgroundContext()
-            context.mergePolicy = NSMergePolicy(merge: NSMergePolicyType.mergeByPropertyObjectTrumpMergePolicyType)
-            context.performAndWait {
-                closure(context)
-            }
+    func enqueueBackgroundTask(_ task: @escaping (NSManagedObjectContext)->Void) {
+        let context = Self.defaultBackgroundContext
+        context.perform {
+            task(context)
         }
     }
 }

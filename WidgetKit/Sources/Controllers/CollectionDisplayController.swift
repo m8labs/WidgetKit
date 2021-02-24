@@ -119,6 +119,35 @@ open class CollectionDisplayController: BaseDisplayController {
         return prepared
     }
     
+    // Object selection handling
+    
+    private func handleSelectionForCell(_ cell: UICollectionViewCell, object: NSObject, at indexPath: IndexPath) {
+        if selectedObjects.contains(object) {
+            handleDeselectionForCell(cell, object: object, at: indexPath)
+        } else {
+            if !collectionView.allowsMultipleSelection {
+                selectedObjects.removeAll()
+            }
+            selectedObjects.insert(object)
+            cell.isSelected = true
+        }
+    }
+    
+    private func handleDeselectionForCell(_ cell: UICollectionViewCell, object: NSObject, at indexPath: IndexPath) {
+        selectedObjects.remove(object)
+        cell.isSelected = false
+    }
+    
+    open func selectObjects(_ objects: [NSObject]) {
+        selectedObjects.removeAll()
+        objects.forEach { object in
+            selectedObjects.insert(object)
+        }
+        collectionView?.reloadData()
+    }
+    
+    // Object reordering handling
+    
     @available(iOS 11.0, *)
     open func moveObject(_ object: Any, from: IndexPath, to: IndexPath) {
         //
@@ -163,25 +192,6 @@ extension CollectionDisplayController: UICollectionViewDataSource {
 
 extension CollectionDisplayController: UICollectionViewDelegate {
     
-    // Object selection handling
-    
-    private func handleSelectionForCell(_ cell: UICollectionViewCell, object: NSObject, at indexPath: IndexPath) {
-        if selectedObjects.contains(object) {
-            handleDeselectionForCell(cell, object: object, at: indexPath)
-        } else {
-            if !collectionView.allowsMultipleSelection {
-                selectedObjects.removeAll()
-            }
-            selectedObjects.insert(object)
-            cell.isSelected = true
-        }
-    }
-    
-    private func handleDeselectionForCell(_ cell: UICollectionViewCell, object: NSObject, at indexPath: IndexPath) {
-        selectedObjects.remove(object)
-        cell.isSelected = false
-    }
-    
     open func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let cell = collectionView.cellForItem(at: indexPath) as? ContentCollectionViewCell else { return }
         guard let object = contentProvider.item(at: indexPath) as? NSObject else { return }
@@ -208,12 +218,20 @@ extension CollectionDisplayController: UICollectionViewDelegate {
         cell.isSelected = isSelected
     }
     
-    open func selectObjects(_ objects: [NSObject]) {
-        selectedObjects.removeAll()
-        objects.forEach { object in
-            selectedObjects.insert(object)
+    @available(iOS 13.0, *)
+    @objc(collectionView:contextMenuConfigurationForItemAtIndexPath:point:)
+    func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        guard let object = contentProvider.item(at: indexPath) as? NSObject else { return nil }
+        guard let viewController = self.viewController, let items = viewController.previewMenuItemsForObject(object) else { return nil }
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { suggestedActions in
+            var actions = [UIAction]()
+            for item in items {
+                actions.append(UIAction(title: item.title, image: item.image, attributes: item.isDestructive ? .destructive : []) { _ in
+                    item.handler()
+                })
+            }
+            return UIMenu(title: viewController.previewMenuTitle, children: actions)
         }
-        collectionView?.reloadData()
     }
 }
 

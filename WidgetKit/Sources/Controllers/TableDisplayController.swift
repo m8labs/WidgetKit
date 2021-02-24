@@ -317,11 +317,12 @@ extension TableDisplayController: UITableViewDelegate {
     func viewForHeaderOrFooter(withIdentifier identifier: String, inSection section: Int) -> UIView? {
         guard let systemView = tableView.dequeueReusableHeaderFooterView(withIdentifier: identifier) else { return nil }
         guard let object = contentProvider.item(at: IndexPath(row: 0, section: section)) else { return nil }
-        var customView = systemView.contentView.subviews.first as? ContentDisplayView
-        if customView == nil {
+        var customView = systemView.contentView.subviews.first as? ContentDisplayView // customView was already added to the contentView
+        if customView == nil { // first time systemView was loaded from nib, extract customView
             customView = systemView.subviews.first(where: { $0 is ContentDisplayView }) as? ContentDisplayView
             guard customView != nil else { preconditionFailure("Put ContentDisplayView as the only subview of UITableViewHeaderFooterView in the xib.") }
             systemView.addSubview(customView!)
+            systemView.backgroundView = UIView(frame: systemView.bounds)
         }
         configureSection(customView!, object: object, section: section)
         return systemView

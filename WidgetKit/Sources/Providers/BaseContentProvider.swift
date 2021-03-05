@@ -213,8 +213,8 @@ open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
     
     open override func setup() {
         super.setup()
-        // Taking vc's content object as the `masterObject` for all content providers, if `masterKeyPath` was set.
-        if masterKeyPath != nil {
+        // Taking vc's content object as the `masterObject` for all content providers if it's nil and `masterKeyPath` was set.
+        if masterKeyPath != nil && masterObject == nil {
             masterObject = viewController?.content as? NSObject
         }
     }

@@ -113,6 +113,7 @@ open class CollectionDisplayController: BaseDisplayController {
         super.setup()
     }
     
+    @discardableResult
     open override func prepare() -> [CustomIBObject] {
         let prepared = super.prepare()
         vars = ObjectsDictionaryProxy(copy: viewController!.vars)

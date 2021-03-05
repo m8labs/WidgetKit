@@ -40,7 +40,11 @@ public protocol ContentConsumerProtocol: class {
 
 open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, ObserversStorageProtocol {
     
-    @IBOutlet public var mainContentProvider: BaseContentProvider?
+    @IBOutlet public var mainContentProvider: BaseContentProvider? {
+        didSet {
+            mainContentProvider?.contentConsumer = self
+        }
+    }
     
     @IBOutlet public var searchController: SearchActionController?
     
@@ -81,7 +85,6 @@ open class BaseDisplayController: CustomIBObject, ContentConsumerProtocol, Obser
         super.setup()
         guard viewController != nil else { preconditionFailure("Error: view controller for \(self) wasn't set.") }
         dependency = mainContentProvider
-        mainContentProvider?.contentConsumer = self
         if let searchController = searchController {
             if searchController.contentProvider == nil {
                 searchController.contentProvider = mainContentProvider

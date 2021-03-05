@@ -219,6 +219,7 @@ open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
         }
     }
     
+    @discardableResult
     open override func prepare() -> [CustomIBObject] {
         let prepared = super.prepare()
         fetch()

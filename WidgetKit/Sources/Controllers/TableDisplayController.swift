@@ -202,6 +202,7 @@ open class TableDisplayController: BaseDisplayController {
         super.setup()
     }
     
+    @discardableResult
     override open func prepare() -> [CustomIBObject] {
         let prepared = super.prepare()
         vars = ObjectsDictionaryProxy(copy: viewController!.vars)

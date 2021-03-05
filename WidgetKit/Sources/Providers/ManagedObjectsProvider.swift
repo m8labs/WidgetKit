@@ -30,15 +30,9 @@ open class ManagedObjectsProvider: BaseContentProvider {
     @objc public var groupByField: String?
     @objc public var cacheName: String?
     @objc public var fetchBatchSize: Int = 0
+    @objc public var fetchWithoutPredicates = true
     
-    var _fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult>?
-    
-    var fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult> {
-        if _fetchedResultsController == nil {
-            fetch()
-        }
-        return _fetchedResultsController!
-    }
+    private var fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult>?
     
     private func masterPredicate() -> NSPredicate? {
         guard let masterObject = masterObject, let masterKeyPath = masterKeyPath else { return nil }
@@ -67,7 +61,7 @@ open class ManagedObjectsProvider: BaseContentProvider {
         if let filterPredicate = filterPredicate() {
             predicates.append(filterPredicate)
         }
-        return NSCompoundPredicate.init(andPredicateWithSubpredicates: predicates)
+        return predicates.count > 0 ? NSCompoundPredicate(andPredicateWithSubpredicates: predicates) : nil
     }
     
     private var _managedObjectContext: NSManagedObjectContext?
@@ -81,20 +75,20 @@ open class ManagedObjectsProvider: BaseContentProvider {
     }
     
     override open var sectionsCount: Int {
-        return fetchedResultsController.sections?.count ?? 0
+        return fetchedResultsController?.sections?.count ?? 0
     }
     
     override open func itemsCountInSection(_ section: Int) -> Int {
-        return fetchedResultsController.sections?[section].numberOfObjects ?? 0
+        return fetchedResultsController?.sections?[section].numberOfObjects ?? 0
     }
     
     override open var allItems: [Any] {
-        return fetchedResultsController.fetchedObjects ?? []
+        return fetchedResultsController?.fetchedObjects ?? []
     }
     
     override open func item(at indexPath: IndexPath) -> Any? {
         let count = itemsCountInSection(indexPath.section)
-        return count > 0 && indexPath.item < count ? fetchedResultsController.object(at: indexPath) : nil
+        return count > 0 && indexPath.item < count ? fetchedResultsController?.object(at: indexPath) : nil
     }
     
     open func indexPath(before indexPath: IndexPath) -> IndexPath? {
@@ -121,20 +115,20 @@ open class ManagedObjectsProvider: BaseContentProvider {
     
     open func item(before aIndexPath: IndexPath) -> Any? {
         guard let indexPath = indexPath(before: aIndexPath) else { return nil }
-        return fetchedResultsController.object(at: indexPath)
+        return fetchedResultsController?.object(at: indexPath)
     }
     
     open func item(after aIndexPath: IndexPath) -> Any? {
         guard let indexPath = indexPath(after: aIndexPath) else { return nil }
-        return fetchedResultsController.object(at: indexPath)
+        return fetchedResultsController?.object(at: indexPath)
     }
     
     @objc override open func indexPath(for item: Any) -> IndexPath? {
-        return fetchedResultsController.indexPath(forObject: item as! NSFetchRequestResult)
+        return fetchedResultsController?.indexPath(forObject: item as! NSFetchRequestResult)
     }
     
     override open var totalCount: Int {
-        guard let sections = fetchedResultsController.sections else { return 0 }
+        guard let sections = fetchedResultsController?.sections else { return 0 }
         var count = 0
         for section in sections {
             count += section.numberOfObjects
@@ -143,17 +137,21 @@ open class ManagedObjectsProvider: BaseContentProvider {
     }
     
     override open func last() -> Any? {
-        guard let sections = fetchedResultsController.sections, let lastSection = sections.last else { return nil }
+        guard let sections = fetchedResultsController?.sections, let lastSection = sections.last else { return nil }
         let count = lastSection.numberOfObjects
         return count > 0 ? item(at: IndexPath(row: count - 1, section: sections.count - 1)) : nil
     }
     
     override open func reset() {
-        _fetchedResultsController = nil
+        fetchedResultsController = nil
         contentConsumer?.renderContent(from: self)
     }
     
     override open func fetch() {
+        let predicate = self.predicate()
+        guard predicate != nil || fetchWithoutPredicates else {
+            return
+        }
         var sortDescriptors = self.sortDescriptors
         if groupByField != nil && groupByField != "" {
             sortDescriptors.insert(NSSortDescriptor(key: groupByField!, ascending: sortAscending), at: 0)
@@ -162,17 +160,17 @@ open class ManagedObjectsProvider: BaseContentProvider {
         fetchRequest.fetchBatchSize = fetchBatchSize
         fetchRequest.entity = NSEntityDescription.entity(forEntityName: entityName!, in: managedObjectContext)!
         fetchRequest.sortDescriptors = sortDescriptors
-        fetchRequest.predicate = predicate()
-        _fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest,
-                                                               managedObjectContext: managedObjectContext,
-                                                               sectionNameKeyPath: groupByField,
-                                                               cacheName: cacheName)
-        _fetchedResultsController!.delegate = self
+        fetchRequest.predicate = predicate
+        fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest,
+                                                              managedObjectContext: managedObjectContext,
+                                                              sectionNameKeyPath: groupByField,
+                                                              cacheName: cacheName)
+        fetchedResultsController!.delegate = self
         do {
-            try _fetchedResultsController!.performFetch()
+            try fetchedResultsController!.performFetch()
             contentConsumer?.renderContent(from: self)
         }
-        catch let error {
+        catch {
             print(error)
         }
     }

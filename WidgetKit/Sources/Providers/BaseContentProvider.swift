@@ -102,11 +102,11 @@ open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
     
     @objc open var filterFormat: String?
     
-    @objc open var predicateFormat: String? { didSet { reset() } }
+    @objc open var predicateFormat: String? { didSet { if isPrepared { fetch() } } }
     
-    @objc open var searchString: String? { didSet { fetch() } }
+    @objc open var searchString: String? { didSet { if isPrepared { fetch() } } }
     
-    open var masterObject: NSObject? { didSet { fetch() } }
+    open var masterObject: NSObject? { didSet { if isPrepared { fetch() } } }
     
     /// `resultChain` utilizes `NSExpression` engine, which is very powerful and can compete with
     /// objective-c/swift code with functionality. It's an array of `NSArray.wx_*` functions which
@@ -221,9 +221,9 @@ open class BaseContentProvider: ContentProviderProtocol & CustomIBObject {
     
     @discardableResult
     open override func prepare() -> [CustomIBObject] {
-        let prepared = super.prepare()
+        let preparedChain = super.prepare()
         fetch()
-        return prepared
+        return preparedChain
     }
 }
 

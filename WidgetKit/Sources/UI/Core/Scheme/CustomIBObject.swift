@@ -45,13 +45,17 @@ open class CustomIBObject: NSObject {
         return viewController?.widget
     }
     
+    public private(set) var isPrepared = false
+    
     open func setup() {
         //
     }
     
     @discardableResult
     open func prepare() -> [CustomIBObject] {
-        return (dependency?.prepare() ?? []) + [self]
+        let preparedChain = (dependency?.prepare() ?? []) + [self]
+        isPrepared = true
+        return preparedChain
     }
     
     func dependencyDepth() -> Int {

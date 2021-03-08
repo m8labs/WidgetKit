@@ -105,7 +105,8 @@ open class TableDisplayController: BaseDisplayController {
         return true
     }
     
-    open func cellIdentifier(for object: Any, at indexPath: IndexPath) -> String {
+    open func cellIdentifier(for object: Any?, at indexPath: IndexPath) -> String {
+        guard let object = object else { return Self.defaultCellIdentifier }
         let isSearching = searchController?.isSearching ?? false
         if let vars = vars {
             vars.setValue(object, forKey: ObjectsDictionaryProxy.contentKey)
@@ -125,7 +126,7 @@ open class TableDisplayController: BaseDisplayController {
         return sectionFooterIdentifier ?? type(of: self).defaultSectionFooterIdentifier
     }
     
-    open func configureCell(_ cell: ContentTableViewCell, object: Any, indexPath: IndexPath) {
+    open func configureCell(_ cell: ContentTableViewCell, object: Any?, indexPath: IndexPath) {
         if let contentView = cell.contentDisplayView {
             contentView.widget = widget
             contentView.scheme = viewController?.scheme

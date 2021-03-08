@@ -73,19 +73,20 @@ open class CollectionDisplayController: BaseDisplayController {
         }
     }
     
-    open func cellIdentifier(for object: Any, at indexPath: IndexPath) -> String {
+    open func cellIdentifier(for object: Any?, at indexPath: IndexPath) -> String {
+        guard let object = object else { return Self.defaultCellIdentifier }
         let isSearching = searchController?.isSearching ?? false
         if let vars = vars {
             vars.setValue(object, forKey: ObjectsDictionaryProxy.contentKey)
-            let key = isSearching ? type(of: self).searchCellIdentifierKey : type(of: self).cellIdentifierKey
+            let key = isSearching ? Self.searchCellIdentifierKey : Self.cellIdentifierKey
             if let eval = wx.evals[key] ?? wx.evals[type(of: self).cellIdentifierKey] {
                 return eval.perform(with: vars) as! String
             }
         }
-        return (isSearching && searchCellIdentifier != nil ? searchCellIdentifier : cellIdentifier) ?? type(of: self).defaultCellIdentifier
+        return (isSearching && searchCellIdentifier != nil ? searchCellIdentifier : cellIdentifier) ?? Self.defaultCellIdentifier
     }
     
-    open func configureCell(_ cell: ContentCollectionViewCell, object: Any, indexPath: IndexPath) {
+    open func configureCell(_ cell: ContentCollectionViewCell, object: Any?, indexPath: IndexPath) {
         if let contentView = cell.contentDisplayView {
             contentView.widget = widget
             contentView.scheme = viewController?.scheme

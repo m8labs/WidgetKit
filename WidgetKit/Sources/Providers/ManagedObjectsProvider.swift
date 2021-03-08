@@ -52,8 +52,8 @@ open class ManagedObjectsProvider: BaseContentProvider {
     
     private func predicate() -> NSPredicate? {
         var predicates = [NSPredicate]()
-        if let format = predicateFormat {
-            predicates.append(predicateFromString(format))
+        if let predicateFormat = predicateFormat {
+            predicates.append(predicateFromString(predicateFormat))
         }
         if let masterPredicate = masterPredicate() {
             predicates.append(masterPredicate)

@@ -26,12 +26,12 @@ import UIKit
 @objc
 public extension UIView {
     
-    var borderColor: UIColor {
+    var borderColor: UIColor? {
         get {
             return UIColor(cgColor: layer.borderColor ?? UIColor.clear.cgColor)
         }
         set {
-            layer.borderColor = newValue.cgColor
+            layer.borderColor = newValue?.cgColor
         }
     }
     

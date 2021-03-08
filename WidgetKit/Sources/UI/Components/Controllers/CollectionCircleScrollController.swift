@@ -1,5 +1,5 @@
 //
-// CollectionCircleScrollController.swift
+// CollectionCyclicScrollController.swift
 //
 // WidgetKit, Copyright (c) 2018 M8 Labs (http://m8labs.com)
 //
@@ -23,7 +23,7 @@
 
 import UIKit
 
-open class CollectionCircleScrollController: CollectionPageScrollController {
+open class CollectionCyclicScrollController: CollectionPageScrollController {
     
     @objc public var circleScrollFactor = 100
     
@@ -33,7 +33,7 @@ open class CollectionCircleScrollController: CollectionPageScrollController {
     }
 }
 
-extension CollectionCircleScrollController {
+extension CollectionCyclicScrollController {
     
     func setInitialContentOffset() {
         let count = contentProvider.totalCount
@@ -41,7 +41,7 @@ extension CollectionCircleScrollController {
     }
 }
 
-extension CollectionCircleScrollController {
+extension CollectionCyclicScrollController {
     
     open override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let count = contentProvider.itemsCountInSection(section)

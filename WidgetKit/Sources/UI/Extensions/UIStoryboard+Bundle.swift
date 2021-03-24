@@ -23,7 +23,7 @@
 
 import UIKit
 
-extension UIStoryboard {
+public extension UIStoryboard {
     
     static let main: UIStoryboard = {
         let mainStoryboard = UIStoryboard(name: Bundle.main.infoDictionary!["UIMainStoryboardFile"] as! String, bundle: nil)
@@ -31,7 +31,7 @@ extension UIStoryboard {
     }()
 }
 
-extension Bundle {
+public extension Bundle {
     
     static var mainBundleName: String {
         return Bundle.main.infoDictionary?["CFBundleExecutable"] as? String ?? ""
@@ -52,7 +52,7 @@ extension Bundle {
     }
 }
 
-extension UIView {
+public extension UIView {
     
     static func loadNib<T: UIView>(_ nibName: String, bundle: Bundle, size: CGSize = CGSize.zero) -> T? {
         let view = bundle.loadNibNamed(nibName, owner: nil, options: nil)?.first as? T

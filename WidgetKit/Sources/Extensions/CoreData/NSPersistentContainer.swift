@@ -25,7 +25,7 @@ import Groot
 
 public extension NSPersistentContainer {
     
-    private static var defaultBackgroundContext: NSManagedObjectContext = {
+    static var defaultBackgroundContext: NSManagedObjectContext = {
         let context = `default`.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: NSMergePolicyType.mergeByPropertyObjectTrumpMergePolicyType)
         return context

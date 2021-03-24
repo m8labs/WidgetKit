@@ -25,10 +25,30 @@ import Groot
 
 public extension NSManagedObject {
     
-    class func create<T: NSManagedObject>(context: NSManagedObjectContext = NSManagedObjectContext.main) -> T {
-        let entityName = "\(self)"
-        let object = NSEntityDescription.insertNewObject(forEntityName: entityName, into: context)
-        return object as! T
+    @discardableResult
+    class func create(setters: [String: Any?]) -> Self {
+        let context = NSPersistentContainer.defaultBackgroundContext
+        var objectID: NSManagedObjectID?
+        context.performAndWait {
+            do {
+                let entityName = "\(self)"
+                let object = NSEntityDescription.insertNewObject(forEntityName: entityName, into: context)
+                setters.forEach { key, value in
+                    if value is NSManagedObjectID {
+                        let relationship = context.object(with: value as! NSManagedObjectID)
+                        object.setValue(relationship, forKey: key)
+                    } else {
+                        object.setValue(value, forKey: key)
+                    }
+                }
+                try context.save()
+                objectID = object.objectID
+            } catch {
+                print(error)
+            }
+        }
+        guard objectID != nil else { preconditionFailure("Couldn't create object for entityName '\(self)'") }
+        return NSManagedObjectContext.main.object(with: objectID!) as! Self
     }
     
     class func objects(of entityName: String,

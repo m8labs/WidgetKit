@@ -108,10 +108,23 @@ func substituteJsonObject(_ target: Any, with source: NSObject) -> Any {
             if let value = value as? String, value.hasPrefix("$") {
                 let keyPath = String(value.dropFirst())
                 dict[key] = source.value(forKeyPath: keyPath)
-            } else if let value = value as? String {
+            }
+            else if let value = value as? String {
                 dict[key] = String(format: value, with: source, pattern: String.keyPathPattern)
-            } else if (value is [Any] || value is [String: Any]) {
-                dict[key] = substituteJsonObject(value, with: source)
+            }
+            else if (value is [Any] || value is [String: Any]) {
+                
+                let object = substituteJsonObject(value, with: source)
+                
+                if let dictionary = object as? [String: Any] {
+                    dict[key] = dictionary.isEmpty ? nil : dictionary
+                }
+                else if let array = object as? [Any] {
+                    dict[key] = array.isEmpty ? nil : array
+                }
+                else {
+                    dict[key] = object
+                }
             }
         }
         return dict

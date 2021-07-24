@@ -23,124 +23,103 @@
 
 import UIKit
 
-open class TableInfiniteScrollController: TableDisplayController {
+protocol InfiniteScrollable {
     
-    @objc public var scrollUpThreshhold: CGFloat = 200
+    var infiniteScrollUpAction: ActionController? { get set }
     
-    @objc public var scrollDownThreshhold: CGFloat = 200
+    var infiniteScrollDownAction: ActionController? { get set }
     
-    fileprivate var handleDraggingAllowed = true
-    
-    fileprivate var lastContentOffset: CGFloat = 0.0
-    
-    fileprivate var infiniteScrollUp: (() -> Void)?
-    
-    fileprivate var infiniteScrollDown: (() -> Void)?
+    var actionTriggerThreshhold: CGFloat { get set }
 }
 
-enum ScrollUpDownEdge : Int {
-    case none, top, bottom
+class InfiniteScrollHelper {
+    
+    var handleDraggingAllowed = true
+    
+    var lastContentOffset: CGFloat?
+    
+    var scrollable: InfiniteScrollable & BaseDisplayController
+    
+    init(scrollable: InfiniteScrollable & BaseDisplayController) {
+        self.scrollable = scrollable
+    }
+    
+    func pauseTracking() {
+        handleDraggingAllowed = false
+        after(0.25) { [weak self] in
+            self?.handleDraggingAllowed = true
+        }
+    }
+    
+    func handleDraggingDecelerating(_ scrollView: UIScrollView) {
+        
+        guard handleDraggingAllowed, scrollable.actionTriggerThreshhold > 0, let lastContentOffset = lastContentOffset else { return }
+        
+        let edge = scrollView.scrolledToVerticalEdge(threshhold: scrollable.actionTriggerThreshhold,
+                                                     previousContentOffset: lastContentOffset)
+        if edge == .top {
+            if let searchController = scrollable.searchController, searchController.isSearching, !searchController.status.inProgress {
+                searchController.performAction(with: scrollable.contentProvider.first())
+                pauseTracking()
+            }
+            else if let infiniteScrollUpAction = scrollable.infiniteScrollUpAction, !infiniteScrollUpAction.status.inProgress {
+                infiniteScrollUpAction.performAction(with: scrollable.contentProvider.first())
+                pauseTracking()
+            }
+        }
+        else if edge == .bottom {
+            if let searchController = scrollable.searchController, searchController.isSearching, !searchController.status.inProgress {
+                searchController.performAction(with: scrollable.contentProvider.last())
+                pauseTracking()
+            }
+            else if let infiniteScrollDownAction = scrollable.infiniteScrollDownAction, !infiniteScrollDownAction.status.inProgress {
+                infiniteScrollDownAction.performAction(with: scrollable.contentProvider.last())
+                pauseTracking()
+            }
+        }
+    }
 }
 
-extension TableInfiniteScrollController {
+extension UIScrollView {
     
-    private class func reachedEdgeWithThreshhold(_ threshhold: CGFloat,
-                                                 contentOffsetY: CGFloat,
-                                                 contentInsetTop: CGFloat,
-                                                 contentHeight: CGFloat,
-                                                 viewHeight: CGFloat,
-                                                 previousContentOffset: CGFloat) -> ScrollUpDownEdge {
-        let scrollingUp = contentOffsetY < previousContentOffset
-        let scrollingDown = contentOffsetY > previousContentOffset
-        let normalContentOffsetY = contentOffsetY + contentInsetTop
+    enum VerticalEdge : Int {
+        case none, top, bottom
+    }
+    
+    func scrolledToVerticalEdge(threshhold: CGFloat, previousContentOffset: CGFloat) -> VerticalEdge {
+        let scrollingUp = contentOffset.y < previousContentOffset
+        let scrollingDown = contentOffset.y > previousContentOffset
+        let normalContentOffsetY = contentOffset.y + contentInset.top
         if (scrollingUp) {
             if (normalContentOffsetY <= threshhold) {
                 return .top
             }
         }
         else if (scrollingDown) {
-            let cHeight = contentHeight > viewHeight ? contentHeight : viewHeight
-            let normalBottomOffset = cHeight - normalContentOffsetY - viewHeight + contentInsetTop
-//            print("\nbottomOffset(\(normalBottomOffset)) = contentHeight(\(cHeight)) - contentOffset(\(normalContentOffsetY)) - viewHeight(\(viewHeight))\n")
+            let cHeight = contentSize.height > frame.size.height ? contentSize.height : frame.size.height
+            let normalBottomOffset = cHeight - normalContentOffsetY - frame.size.height + contentInset.top
             if (normalBottomOffset <= threshhold) {
                 return .bottom
             }
         }
         return .none
     }
+}
+
+open class TableInfiniteScrollController: TableDisplayController, InfiniteScrollable {
     
-    func handleDraggingDecelerating(_ scrollView: UIScrollView) {
-        guard handleDraggingAllowed else { return }
-        if scrollUpThreshhold > 0 {
-            let edge = TableInfiniteScrollController.reachedEdgeWithThreshhold(scrollUpThreshhold,
-                                                                        contentOffsetY: scrollView.contentOffset.y,
-                                                                        contentInsetTop: scrollView.contentInset.top,
-                                                                        contentHeight: scrollView.contentSize.height,
-                                                                        viewHeight: scrollView.frame.size.height,
-                                                                        previousContentOffset: lastContentOffset)
-            if edge == .top {
-                infiniteScrollUp?()
-            }
-        }
-        if scrollDownThreshhold > 0 {
-            let edge = TableInfiniteScrollController.reachedEdgeWithThreshhold(scrollDownThreshhold,
-                                                                        contentOffsetY: scrollView.contentOffset.y,
-                                                                        contentInsetTop: scrollView.contentInset.top,
-                                                                        contentHeight: scrollView.contentSize.height,
-                                                                        viewHeight: scrollView.frame.size.height,
-                                                                        previousContentOffset: lastContentOffset)
-            if edge == .bottom {
-                infiniteScrollDown?()
-            }
-        }
-        handleDraggingAllowed = false
-        after(0.25) { self.handleDraggingAllowed = true }
-    }
+    @IBOutlet public var infiniteScrollUpAction: ActionController?
+    
+    @IBOutlet public var infiniteScrollDownAction: ActionController?
+    
+    @objc public var actionTriggerThreshhold: CGFloat = 200
+    
+    private lazy var infiniteScrollHelper = InfiniteScrollHelper(scrollable: self)
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if scrollView.isDragging || scrollView.isDecelerating {
-            handleDraggingDecelerating(scrollView)
+            infiniteScrollHelper.handleDraggingDecelerating(scrollView)
         }
-        lastContentOffset = scrollView.contentOffset.y
-    }
-}
-
-public class InfiniteScrollActionController: ActionController {
-    
-    @objc public var trackScrollDown = true
-    
-    var contentController: TableInfiniteScrollController? {
-        return (sender as? UITableView)?.dataSource as? TableInfiniteScrollController
-    }
-    
-    public override var params: Any? {
-        return trackScrollDown ? contentController?.contentProvider.last() : contentController?.contentProvider.first()
-    }
-    
-    public override func performAction(with object: Any? = nil) {
-        if let searchController = contentController?.searchController, searchController.isSearching {
-            searchController.performAction()
-        } else {
-            super.performAction()
-        }
-    }
-    
-    public override func setup() {
-        super.setup()
-        if trackScrollDown {
-            contentController?.infiniteScrollDown = { [weak self] in
-                guard let this = self else { return }
-                if !this.status.inProgress {
-                    this.performAction()
-                }
-            }
-        } else {
-            contentController?.infiniteScrollUp = { [weak self] in
-                guard let this = self else { return }
-                if !this.status.inProgress {
-                    this.performAction()
-                }
-            }
-        }
+        infiniteScrollHelper.lastContentOffset = scrollView.contentOffset.y
     }
 }

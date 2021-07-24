@@ -73,6 +73,7 @@
 		79EB67EB20CFE56A000FBB55 /* CollectionPageScrollController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB67EA20CFE56A000FBB55 /* CollectionPageScrollController.swift */; };
 		79EB67EE20D2A18C000FBB55 /* WidgetDemo.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 79EB67EC20D2A18C000FBB55 /* WidgetDemo.bundle */; };
 		79EB67F120D2B2F5000FBB55 /* WidgetDemo.zip in Resources */ = {isa = PBXBuildFile; fileRef = 79EB67F020D2B2F5000FBB55 /* WidgetDemo.zip */; };
+		840F33CB26AC56E400A1092B /* CollectionInfiniteScrollController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 840F33CA26AC56E400A1092B /* CollectionInfiniteScrollController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -167,6 +168,7 @@
 		79EB67EA20CFE56A000FBB55 /* CollectionPageScrollController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CollectionPageScrollController.swift; sourceTree = "<group>"; };
 		79EB67EC20D2A18C000FBB55 /* WidgetDemo.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = WidgetDemo.bundle; sourceTree = "<group>"; };
 		79EB67F020D2B2F5000FBB55 /* WidgetDemo.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; path = WidgetDemo.zip; sourceTree = "<group>"; };
+		840F33CA26AC56E400A1092B /* CollectionInfiniteScrollController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CollectionInfiniteScrollController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -360,6 +362,7 @@
 			isa = PBXGroup;
 			children = (
 				7901A88820CDD3E700E0356B /* TableInfiniteScrollController.swift */,
+				840F33CA26AC56E400A1092B /* CollectionInfiniteScrollController.swift */,
 				79EB67EA20CFE56A000FBB55 /* CollectionPageScrollController.swift */,
 				7901A88920CDD3E700E0356B /* CollectionCircleScrollController.swift */,
 			);
@@ -595,6 +598,7 @@
 				7901A8AD20CDD3E700E0356B /* ContentViewController.swift in Sources */,
 				7901A8B220CDD3E700E0356B /* Widget.swift in Sources */,
 				79EB67EB20CFE56A000FBB55 /* CollectionPageScrollController.swift in Sources */,
+				840F33CB26AC56E400A1092B /* CollectionInfiniteScrollController.swift in Sources */,
 				7901A8B420CDD3E700E0356B /* UIView+Layer.swift in Sources */,
 				7901A8D620CDD3E700E0356B /* ActionController.swift in Sources */,
 				7901A8C920CDD3E700E0356B /* JSONSerialization.swift in Sources */,

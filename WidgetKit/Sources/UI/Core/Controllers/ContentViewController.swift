@@ -112,10 +112,20 @@ open class ContentViewController: UIViewController, ContentSchemedProtocol, Obse
         if source == nil {
             source = ((sender as? UIBarButtonItem)?.value(forKey: "view") as? UIView)?.contentContainer()
         }
-        let destination = (segue.destination as? UINavigationController)?.topViewController ?? segue.destination
-        guard let content = source?.content, let target = destination as? ContentViewController, target.deriveSegueContent else { return }
+        guard let content = source?.content, let target = segue.target as? ContentViewController, target.deriveSegueContent else {
+            return
+        }
         target.storyboard?.widget = widget
-        target.content = content
+        
+        if let segue = segue as? ContentKeyPathStoryboardSegue,
+           let keyPath = segue.sourceContentKeyPath,
+           let object = content as? NSObject
+        {
+            target.content = object.value(forKeyPath: keyPath)
+        }
+        else {
+            target.content = content
+        }
     }
     
     open var previewMenuTitle: String {
@@ -196,5 +206,20 @@ extension UIViewController {
             }
         }
         return elements
+    }
+}
+
+extension UIStoryboardSegue {
+    
+    var target: UIViewController {
+        return (destination as? UINavigationController)?.topViewController ?? destination
+    }
+}
+
+public class ContentKeyPathStoryboardSegue: UIStoryboardSegue {
+    
+    public var sourceContentKeyPath: String? {
+        guard let parts = identifier?.split(separator: ":"), parts.count <= 2, let keyPath = parts.last else { return nil }
+        return String(keyPath)
     }
 }

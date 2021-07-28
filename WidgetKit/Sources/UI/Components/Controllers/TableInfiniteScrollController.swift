@@ -38,7 +38,7 @@ class InfiniteScrollHelper {
     
     var lastContentOffset: CGFloat?
     
-    var scrollable: InfiniteScrollable & BaseDisplayController
+    weak var scrollable: (InfiniteScrollable & BaseDisplayController)?
     
     init(scrollable: InfiniteScrollable & BaseDisplayController) {
         self.scrollable = scrollable
@@ -53,7 +53,7 @@ class InfiniteScrollHelper {
     
     func handleDraggingDecelerating(_ scrollView: UIScrollView) {
         
-        guard handleDraggingAllowed, scrollable.actionTriggerThreshhold > 0, let lastContentOffset = lastContentOffset else { return }
+        guard handleDraggingAllowed, let scrollable = scrollable, scrollable.actionTriggerThreshhold > 0, let lastContentOffset = lastContentOffset else { return }
         
         let edge = scrollView.scrolledToVerticalEdge(threshhold: scrollable.actionTriggerThreshhold,
                                                      previousContentOffset: lastContentOffset)

@@ -25,9 +25,9 @@ import UIKit
 
 protocol InfiniteScrollable {
     
-    var infiniteScrollUpAction: ActionController? { get set }
+    var infiniteScrollUpAction: ScrollActionController? { get set }
     
-    var infiniteScrollDownAction: ActionController? { get set }
+    var infiniteScrollDownAction: ScrollActionController? { get set }
     
     var actionTriggerThreshhold: CGFloat { get set }
 }
@@ -66,6 +66,7 @@ class InfiniteScrollHelper {
                 infiniteScrollUpAction.performAction(with: scrollable.contentProvider.first())
                 pauseTracking()
             }
+            scrollable.infiniteScrollDownAction?.resetInfiniteLoading()
         }
         else if edge == .bottom {
             if let searchController = scrollable.searchController, searchController.isSearching, !searchController.status.inProgress {
@@ -76,6 +77,7 @@ class InfiniteScrollHelper {
                 infiniteScrollDownAction.performAction(with: scrollable.contentProvider.last())
                 pauseTracking()
             }
+            scrollable.infiniteScrollUpAction?.resetInfiniteLoading()
         }
     }
 }
@@ -87,6 +89,9 @@ extension UIScrollView {
     }
     
     func scrolledToVerticalEdge(threshhold: CGFloat, previousContentOffset: CGFloat) -> VerticalEdge {
+        guard contentSize.height > frame.size.height else {
+            return .none
+        }
         let scrollingUp = contentOffset.y < previousContentOffset
         let scrollingDown = contentOffset.y > previousContentOffset
         let normalContentOffsetY = contentOffset.y + contentInset.top
@@ -106,11 +111,30 @@ extension UIScrollView {
     }
 }
 
+open class ScrollActionController: ActionController {
+    
+    open private(set) var shouldStopInfiniteLoading = false
+    
+    open override func statusChanged(_ status: ActionStatusController, args: ActionArgs?, result: Any?, error: Error?) {
+        guard let resultArray = result as? [Any] else { return }
+        shouldStopInfiniteLoading = resultArray.count == 0
+    }
+    
+    open override func performAction(with object: Any?) {
+        guard !shouldStopInfiniteLoading else { return print("\(Self.self): call resetInfiniteLoading for unlock this action.") }
+        super.performAction(with: object)
+    }
+    
+    public func resetInfiniteLoading() {
+        shouldStopInfiniteLoading = false
+    }
+}
+
 open class TableInfiniteScrollController: TableDisplayController, InfiniteScrollable {
     
-    @IBOutlet public var infiniteScrollUpAction: ActionController?
+    @IBOutlet public var infiniteScrollUpAction: ScrollActionController?
     
-    @IBOutlet public var infiniteScrollDownAction: ActionController?
+    @IBOutlet public var infiniteScrollDownAction: ScrollActionController?
     
     @objc public var actionTriggerThreshhold: CGFloat = 200
     

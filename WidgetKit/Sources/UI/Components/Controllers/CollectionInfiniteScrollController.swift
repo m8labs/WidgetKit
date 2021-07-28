@@ -25,9 +25,9 @@ import UIKit
 
 open class CollectionInfiniteScrollController: CollectionDisplayController, InfiniteScrollable {
     
-    @IBOutlet public var infiniteScrollUpAction: ActionController?
+    @IBOutlet public var infiniteScrollUpAction: ScrollActionController?
     
-    @IBOutlet public var infiniteScrollDownAction: ActionController?
+    @IBOutlet public var infiniteScrollDownAction: ScrollActionController?
     
     @objc public var actionTriggerThreshhold: CGFloat = 200
     

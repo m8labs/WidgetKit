@@ -117,10 +117,7 @@ open class ContentViewController: UIViewController, ContentSchemedProtocol, Obse
         }
         target.storyboard?.widget = widget
         
-        if let segue = segue as? ContentKeyPathStoryboardSegue,
-           let keyPath = segue.sourceContentKeyPath,
-           let object = content as? NSObject
-        {
+        if let keyPath = segue.sourceContentKeyPath, let object = content as? NSObject {
             target.content = object.value(forKeyPath: keyPath)
         }
         else {
@@ -211,15 +208,12 @@ extension UIViewController {
 
 extension UIStoryboardSegue {
     
-    var target: UIViewController {
-        return (destination as? UINavigationController)?.topViewController ?? destination
-    }
-}
-
-public class ContentKeyPathStoryboardSegue: UIStoryboardSegue {
-    
-    public var sourceContentKeyPath: String? {
+    var sourceContentKeyPath: String? {
         guard let parts = identifier?.split(separator: ":"), parts.count <= 2, let keyPath = parts.last else { return nil }
         return String(keyPath)
+    }
+    
+    var target: UIViewController {
+        return (destination as? UINavigationController)?.topViewController ?? destination
     }
 }

@@ -209,7 +209,7 @@ extension UIViewController {
 extension UIStoryboardSegue {
     
     var sourceContentKeyPath: String? {
-        guard let parts = identifier?.split(separator: ":"), parts.count <= 2, let keyPath = parts.last else { return nil }
+        guard let parts = identifier?.components(separatedBy: ":"), parts.count == 2, let keyPath = parts.last else { return nil }
         return String(keyPath)
     }
     

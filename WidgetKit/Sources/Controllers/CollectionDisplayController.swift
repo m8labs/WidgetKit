@@ -340,10 +340,9 @@ extension CollectionDisplayController: UICollectionViewDropDelegate {
     
     @available(iOS 11.0, *)
     public func collectionView(_ collectionView: UICollectionView, dropSessionDidUpdate session: UIDropSession, withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
-        if collectionView.hasActiveDrag, let _ = destinationIndexPath {
-            return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
-        } else {
+        guard collectionView.hasActiveDrag, let indexPath = destinationIndexPath, let _ = contentProvider.item(at: indexPath) else {
             return UICollectionViewDropProposal(operation: .forbidden)
         }
+        return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
     }
 }
